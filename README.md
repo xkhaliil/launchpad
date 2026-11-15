@@ -1,4 +1,4 @@
-# ReadyDev
+# Launchpad
 
 Job-ready platform for CS graduates. See [plan.md](plan.md) for the product plan.
 

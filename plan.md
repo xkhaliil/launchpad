@@ -1,4 +1,4 @@
-# plan.md — ReadyDev: Job-Ready Platform for CS Graduates
+# plan.md — Launchpad: Job-Ready Platform for CS Graduates
 
 > **For the AI agent building this project.** Read this whole file before writing code.
 > It is the single source of truth for what to build, in what order, and which rules
@@ -6,7 +6,7 @@
 > file wins. When this file is silent or ambiguous, ask the owner before building
 > anything expensive or irreversible.
 
-- **Product name:** ReadyDev (working name; keep it in one constant so it can change)
+- **Product name:** Launchpad (working name; keep it in one constant so it can change)
 - **Owner:** Khalil Ltaief (GitHub: `xkhaliil`)
 - **Existing asset to reuse:** [gitms](https://github.com/xkhaliil/github-ms) (GitHub repo describer)
 - **Plan version:** 1.0, 2026-11-15
@@ -46,7 +46,7 @@ CS graduates must prepare an ATS-friendly CV, cover letters, a LinkedIn profile,
 profile, a personal website and a set of documents. Today that takes 4–6 separate tools,
 and the same facts are re-typed in each, so they drift apart.
 
-**ReadyDev** gives each student **one profile** (the single source of truth) and
+**Launchpad** gives each student **one profile** (the single source of truth) and
 **eight AI-powered modules** that generate and check every output from it, plus a
 **one-click full evaluation** that scores everything at once (0–100) and lists the top fixes.
 
@@ -232,7 +232,7 @@ topics), side-by-side review, dry run, README commits with current file `sha`
 exclude forks/archived/private by default, `<!-- TODO -->` placeholders.
 
 **Change from gitms:**
-| gitms today | ReadyDev |
+| gitms today | Launchpad |
 |---|---|
 | User pastes a personal access token | GitHub App install (one click); user-to-server token stored encrypted (AES-256-GCM) |
 | Data in browser IndexedDB | Data in Postgres (`github_repos`, `github_changes`) |
@@ -362,7 +362,7 @@ changes need a private permission. **Do not call LinkedIn APIs to edit, and neve
   accessibility, Open Graph tags, favicon from initials.
 - Publish options: `username.readydev.app`, custom domain (DNS instructions + check),
   or GitHub Pages (create repo + push static build via the GitHub App, with approval).
-- Free plan shows a small "Made with ReadyDev" badge.
+- Free plan shows a small "Made with Launchpad" badge.
 
 ### 6.7 Documents pack
 - Checklist types: degree, transcript, references (Arbeitszeugnisse), certificates,
@@ -550,6 +550,7 @@ German-language CVs (Lebenslauf, Anschreiben) · Chrome extension for job ads.
 | 2026-11-15 | GitHub module built on gitms; switch from pasted PAT to GitHub App | Reuse working code; safer, one-click for students |
 | 2026-11-15 | No direct LinkedIn editing; mockup + copy + image tools | LinkedIn edit API restricted |
 | 2026-11-15 | Next.js + Supabase (EU) + Claude API + Vercel | Small team, managed services, GDPR |
+| 2026-11-15 | Product name is Launchpad (was ReadyDev); kept in `APP_NAME` in `lib/site.ts` | Owner's choice |
 
 ---
 
