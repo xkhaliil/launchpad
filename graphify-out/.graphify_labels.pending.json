@@ -1,13 +1,13 @@
 {
   "0": "app/ui.tsx",
   "1": "react",
-  "2": "selectors.ts",
+  "2": "jobs.tsx",
   "3": "profile.tsx",
   "4": "plan.md — Launchpad: Job-Ready Platform for CS Graduates",
   "5": "app-shell.tsx",
   "6": "store.ts",
   "7": "package.json",
-  "8": "next",
+  "8": "review.tsx",
   "9": "ci.yml",
   "10": "compilerOptions",
   "11": "modules.tsx",
@@ -19,5 +19,6 @@
   "17": ".prettierrc.json",
   "18": "AGENTS.md",
   "19": "CLAUDE.md",
-  "20": ".claude/CLAUDE.md"
+  "20": ".claude/CLAUDE.md",
+  "21": "mock.ts"
 }

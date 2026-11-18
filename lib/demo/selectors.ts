@@ -86,6 +86,19 @@ export function evaluation(state: DemoState) {
   const high = issues.filter((issue) => issue.severity === "high").length;
   const medium = issues.length - high;
 
+  const ghOpen = demoGithubChanges.filter(
+    (change) => (state.github[change.id] ?? "proposed") === "proposed",
+  ).length;
+  const weakest = demoRepos
+    .filter((repo) => !repo.isFork)
+    .sort((a, b) => a.health - b.health)[0];
+  const linkedinLeft = LINKEDIN_FIELDS.filter(
+    (field) => !state.linkedin.done.includes(field),
+  );
+  const linkedinText = linkedinLeft.filter(
+    (field) => field !== "banner" && field !== "photo",
+  );
+
   return evaluate([
     {
       id: "cv",
@@ -98,14 +111,20 @@ export function evaluation(state: DemoState) {
       id: "github",
       label: "GitHub",
       ratio: gh.ratio,
-      fix: `Review ${gh.total - gh.applied} proposed GitHub changes.`,
+      fix:
+        ghOpen > 0
+          ? `Review ${ghOpen} proposed GitHub change${ghOpen === 1 ? "" : "s"}.`
+          : `Improve your weakest repo, ${weakest?.name ?? "on GitHub"}.`,
       href: "/github",
     },
     {
       id: "linkedin",
       label: "LinkedIn",
       ratio: state.linkedin.done.length / LINKEDIN_FIELDS.length,
-      fix: "Copy the suggested LinkedIn headline and About text.",
+      fix:
+        linkedinText.length > 0
+          ? `Copy ${linkedinText.length} suggested LinkedIn text${linkedinText.length === 1 ? "" : "s"}.`
+          : "Make your LinkedIn banner and photo.",
       href: "/linkedin",
     },
     {
@@ -116,7 +135,7 @@ export function evaluation(state: DemoState) {
         findCliches(state.coverLetter).length > 0
           ? "Replace the clichés in your cover letter."
           : "Keep your cover letter under 250 words.",
-      href: "/cover-letters",
+      href: "/jobs?ad=generic",
     },
     {
       id: "website",
@@ -137,7 +156,7 @@ export function evaluation(state: DemoState) {
       label: "Consistency",
       ratio: 1 - high * 0.4 - medium * 0.2,
       fix: `Fix ${issues.length} mismatch${issues.length === 1 ? "" : "es"} between your profile and other platforms.`,
-      href: "/evaluation#consistency",
+      href: "/dashboard",
     },
   ]);
 }

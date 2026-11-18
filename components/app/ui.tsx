@@ -1,14 +1,20 @@
-import { ArrowUpRight } from "lucide-react";
-import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
-import { CountUp } from "./motion";
 
-/* Building blocks shared by every app screen. Same tokens as the landing page. */
+/*
+ * Building blocks shared by every app screen. Same tokens as the landing page.
+ *
+ * Layout rules (plan.md, section 7, "UX architecture"):
+ * - every screen starts with a `PageHeader`: title, one number, main actions;
+ * - content sits on the page, separated by space and hairlines (`listClass`),
+ *   not boxed in cards; a `Card` is for the one object a screen is about;
+ * - anything secondary goes behind a `Disclosure`.
+ */
 
 const focus =
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
 
-const buttonBase = `inline-flex shrink-0 items-center justify-center gap-2 rounded-full font-medium whitespace-nowrap transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${focus}`;
+const buttonBase = `inline-flex shrink-0 items-center justify-center gap-2 rounded-full font-medium whitespace-nowrap transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${focus}`;
 
 export const btn = {
   primary: `${buttonBase} h-10 bg-ink px-4 text-sm text-paper hover:bg-ink/85`,
@@ -16,22 +22,128 @@ export const btn = {
   secondary: `${buttonBase} h-10 border border-ink/15 bg-surface px-4 text-sm text-ink hover:border-ink/35`,
   ghost: `${buttonBase} h-10 px-3 text-sm text-ink-muted hover:bg-ink/5 hover:text-ink`,
   icon: `${buttonBase} size-10 text-ink-muted hover:bg-ink/5 hover:text-ink`,
+  small: `${buttonBase} h-8 border border-ink/15 bg-surface px-3 text-[13px] text-ink hover:border-ink/35`,
 };
 
-/** Buttons for dark surfaces (the screen header, dark tiles). */
-export const btnDark = {
-  primary: `${buttonBase} h-10 bg-paper px-4 text-sm text-ink hover:bg-paper/85`,
-  accent: `${buttonBase} h-10 bg-accent px-4 text-sm text-surface hover:bg-accent-strong`,
-  secondary: `${buttonBase} h-10 px-4 text-sm text-paper ring-1 ring-white/20 hover:bg-white/10`,
-};
+/** A list on the page: rows divided by hairlines, no boxes. */
+export const listClass = "divide-y divide-line border-y border-line";
 
-export type Surface = "white" | "sand" | "ink" | "accent";
+/**
+ * The top of every screen except Home: the title, the screen's one number
+ * and its main actions. No paragraph: if a screen needs explaining, the
+ * screen is the problem.
+ */
+export function PageHeader({
+  title,
+  stat,
+  statLabel,
+  actions,
+  children,
+}: {
+  title: string;
+  stat?: ReactNode;
+  statLabel?: ReactNode;
+  actions?: ReactNode;
+  /** One short line under the header, if needed. */
+  children?: ReactNode;
+}) {
+  return (
+    <header data-motion="tile" data-motion-hide className="print:hidden">
+      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
+        <div className="min-w-0">
+          <h1 className="text-3xl leading-tight font-medium tracking-tight sm:text-[2.5rem]">
+            {title}
+          </h1>
+          {stat !== undefined ? (
+            <p className="mt-1 flex flex-wrap items-baseline gap-x-2 text-ink-muted">
+              <span className="text-lg font-medium text-ink tabular-nums">
+                {stat}
+              </span>
+              {statLabel ? <span className="text-sm">{statLabel}</span> : null}
+            </p>
+          ) : null}
+        </div>
+        {actions ? (
+          <div className="flex flex-wrap items-center gap-2">{actions}</div>
+        ) : null}
+      </div>
+      {children ? (
+        <div className="mt-3 text-sm text-ink-muted">{children}</div>
+      ) : null}
+    </header>
+  );
+}
+
+/** Hides what most people do not need until they ask for it. */
+export function Disclosure({
+  summary,
+  children,
+  className = "",
+}: {
+  summary: ReactNode;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <details className={`group/disclosure ${className}`}>
+      <summary
+        className={`flex min-h-10 cursor-pointer list-none items-center gap-2 rounded-lg text-sm text-ink-muted transition-colors select-none hover:text-ink [&::-webkit-details-marker]:hidden ${focus}`}
+      >
+        <ChevronRight
+          aria-hidden
+          className="size-4 shrink-0 transition-transform group-open/disclosure:rotate-90"
+        />
+        {summary}
+      </summary>
+      <div className="pt-1 pb-2">{children}</div>
+    </details>
+  );
+}
+
+/** A small set of choices, one selected. */
+export function Segmented<T extends string>({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: T;
+  options: readonly { value: T; label: string }[];
+  onChange: (value: T) => void;
+}) {
+  return (
+    <div
+      role="radiogroup"
+      aria-label={label}
+      className="inline-flex max-w-full [scrollbar-width:none] overflow-x-auto rounded-full bg-ink/5 p-1"
+    >
+      {options.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          role="radio"
+          aria-checked={value === option.value}
+          onClick={() => onChange(option.value)}
+          className={`min-h-8 shrink-0 rounded-full px-3.5 text-sm font-medium whitespace-nowrap transition-colors ${focus} ${
+            value === option.value
+              ? "bg-surface text-ink shadow-sm ring-1 ring-line"
+              : "text-ink-muted hover:text-ink"
+          }`}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export type Surface = "white" | "sand" | "ink";
 
 const surfaces: Record<Surface, string> = {
   white: "border border-line bg-surface",
-  sand: "overflow-clip bg-sand",
+  sand: "bg-sand",
   ink: "bg-ink text-paper",
-  accent: "overflow-clip bg-accent text-surface",
 };
 
 const paddings = {
@@ -40,10 +152,7 @@ const paddings = {
   none: "",
 };
 
-/**
- * A tile of a screen. Surfaces vary on purpose (white, textured sand, dark,
- * textured orange). Inside a `ScreenMotion`, tiles arrive one after another.
- */
+/** The one object a screen is about (a document, a preview). */
 export function Card({
   children,
   className = "",
@@ -58,118 +167,7 @@ export function Card({
       className={`relative isolate rounded-[1.75rem] ${surfaces[surface]} ${paddings[pad]} ${className}`}
       {...rest}
     >
-      {surface === "sand" || surface === "accent" ? (
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 -z-10 bg-texture"
-        />
-      ) : null}
       {children}
-    </div>
-  );
-}
-
-/**
- * The header of every app screen: a dark sheet with the title, what the
- * screen is for, its main actions and its key number, which counts up.
- */
-export function ScreenHero({
-  title,
-  description,
-  actions,
-  stat,
-  statSuffix,
-  statLabel,
-  children,
-}: {
-  title: string;
-  description?: ReactNode;
-  actions?: ReactNode;
-  /** A number counts up; text is shown as is. */
-  stat?: number | string;
-  statSuffix?: string;
-  statLabel?: ReactNode;
-  /** Shown under the header row, full width (a progress bar, for example). */
-  children?: ReactNode;
-}) {
-  const big =
-    "text-7xl leading-[0.85] font-medium tracking-[-0.05em] tabular-nums sm:text-8xl";
-  return (
-    <section
-      data-motion="tile"
-      data-motion-hide
-      className="relative isolate overflow-clip rounded-[2rem] bg-ink p-6 text-paper sm:p-9 print:hidden"
-    >
-      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute -top-48 -right-40 size-152 bg-radial-[closest-side] from-accent/40 to-transparent" />
-        <div className="absolute -bottom-56 -left-32 size-120 bg-radial-[closest-side] from-glow-3/10 to-transparent" />
-      </div>
-      <div className="grid grid-cols-1 gap-8 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
-        <div className="min-w-0">
-          <h1 className="text-4xl leading-[1.05] font-medium tracking-tight sm:text-5xl">
-            {title}
-          </h1>
-          {description ? (
-            <p className="mt-3 max-w-xl text-pretty text-paper/70 sm:text-lg sm:leading-7">
-              {description}
-            </p>
-          ) : null}
-          {actions ? (
-            <div className="mt-6 flex flex-wrap gap-2">{actions}</div>
-          ) : null}
-        </div>
-        {stat !== undefined ? (
-          <div className="md:text-right">
-            <p className="flex items-end gap-2 md:justify-end">
-              {typeof stat === "number" ? (
-                <CountUp value={stat} className={big} />
-              ) : (
-                <span className={big}>{stat}</span>
-              )}
-              {statSuffix ? (
-                <span className="mb-1 text-xl text-paper/50">{statSuffix}</span>
-              ) : null}
-            </p>
-            {statLabel ? (
-              <p className="mt-3 text-sm text-paper/60">{statLabel}</p>
-            ) : null}
-          </div>
-        ) : null}
-      </div>
-      {children ? <div className="mt-8">{children}</div> : null}
-    </section>
-  );
-}
-
-/** A tile's title row with a link on the right. */
-export function TileTitle({
-  children,
-  href,
-  action = "Open",
-  tone = "light",
-}: {
-  children: ReactNode;
-  href: string;
-  action?: string;
-  tone?: "light" | "dark";
-}) {
-  return (
-    <div className="flex items-center justify-between gap-3">
-      <h2 className="text-lg font-medium tracking-tight">{children}</h2>
-      <Link
-        href={href}
-        className={`group inline-flex min-h-9 items-center gap-1 rounded-full pr-1 pl-3 text-sm transition-colors ${
-          tone === "dark"
-            ? "text-current/70 hover:bg-white/10 hover:text-current"
-            : "text-ink-muted hover:bg-ink/5 hover:text-ink"
-        }`}
-      >
-        {action}
-        <ArrowUpRight
-          aria-hidden
-          className="size-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
-        />
-      </Link>
     </div>
   );
 }
@@ -177,27 +175,29 @@ export function TileTitle({
 export function SectionTitle({
   children,
   action,
+  id,
 }: {
   children: ReactNode;
   action?: ReactNode;
+  id?: string;
 }) {
   return (
-    <div className="mb-4 flex items-center justify-between gap-3">
-      <h2 className="text-lg font-medium tracking-tight">{children}</h2>
+    <div className="mb-3 flex min-h-10 items-center justify-between gap-3">
+      <h2 id={id} className="text-lg font-medium tracking-tight">
+        {children}
+      </h2>
       {action}
     </div>
   );
 }
 
-export type Tone =
-  "neutral" | "success" | "warning" | "danger" | "accent" | "dark";
+export type Tone = "neutral" | "success" | "warning" | "danger" | "dark";
 
 const tones: Record<Tone, string> = {
-  neutral: "bg-paper text-ink-muted ring-1 ring-line",
+  neutral: "bg-ink/5 text-ink-muted",
   success: "bg-success-soft text-success",
   warning: "bg-accent-soft text-accent-strong",
   danger: "bg-danger/10 text-danger",
-  accent: "bg-accent text-surface",
   dark: "bg-ink text-paper",
 };
 
@@ -214,61 +214,6 @@ export function Badge({
     >
       {children}
     </span>
-  );
-}
-
-/** A score from 0 to 100 as a ring with the number inside. */
-export function ScoreRing({
-  value,
-  size = 128,
-  label,
-}: {
-  value: number;
-  size?: number;
-  label?: string;
-}) {
-  return (
-    <div
-      className="relative grid shrink-0 place-items-center"
-      style={{ width: size, height: size }}
-    >
-      <svg
-        viewBox="0 0 36 36"
-        className="absolute inset-0 -rotate-90"
-        aria-hidden
-      >
-        <circle
-          cx="18"
-          cy="18"
-          r="15.5"
-          fill="none"
-          strokeWidth="3"
-          className="stroke-accent-soft"
-        />
-        <circle
-          cx="18"
-          cy="18"
-          r="15.5"
-          fill="none"
-          strokeWidth="3"
-          strokeLinecap="round"
-          pathLength="100"
-          strokeDasharray={`${Math.max(0, Math.min(100, value))} 100`}
-          className="stroke-accent transition-[stroke-dasharray] duration-700"
-        />
-      </svg>
-      <p className="relative text-center leading-none">
-        <span
-          className="block font-medium tracking-tight tabular-nums"
-          style={{ fontSize: size * 0.28 }}
-        >
-          {value}
-        </span>
-        {label ? (
-          <span className="mt-1 block text-xs text-ink-muted">{label}</span>
-        ) : null}
-      </p>
-    </div>
   );
 }
 
@@ -294,7 +239,7 @@ export function Bar({
 }
 
 export const inputClass =
-  "block w-full rounded-xl border border-line bg-paper px-3.5 text-[15px] text-ink transition-colors placeholder:text-ink-muted/60 hover:border-ink/25 focus:border-accent focus:bg-surface focus:outline-2 focus:outline-offset-0 focus:outline-accent/25";
+  "block w-full rounded-xl border border-line bg-surface px-3.5 text-[15px] text-ink transition-colors placeholder:text-ink-muted/60 hover:border-ink/25 focus:border-accent focus:outline-2 focus:outline-offset-0 focus:outline-accent/25";
 
 export function Field({
   label,

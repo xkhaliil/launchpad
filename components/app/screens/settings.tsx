@@ -1,12 +1,12 @@
 "use client";
 
-import { Check, Download, GitBranch, RotateCcw, Sparkles } from "lucide-react";
+import { Check, Download, RotateCcw } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { ai } from "@/lib/ai/mock";
 import { resetDemo, updateDemo, useDemo } from "@/lib/demo/store";
-import { Badge, btn, Card, ScreenHero, SectionTitle } from "../ui";
 import { ScreenMotion } from "../motion";
+import { Badge, btn, listClass, PageHeader } from "../ui";
 
 /** Plans and limits from plan.md, section 9 (proposal; prices not final). */
 const plans = [
@@ -35,6 +35,43 @@ const plans = [
   },
 ];
 
+function Section({
+  id,
+  title,
+  children,
+}: {
+  id: string;
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <section
+      id={id}
+      aria-labelledby={`${id}-title`}
+      data-motion="tile"
+      data-motion-hide
+      className="scroll-mt-24"
+    >
+      <h2
+        id={`${id}-title`}
+        className="mb-2 text-lg font-medium tracking-tight"
+      >
+        {title}
+      </h2>
+      {children}
+    </section>
+  );
+}
+
+function Row({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-4 py-3.5 text-sm">
+      <dt className="text-ink-muted">{label}</dt>
+      <dd className="min-w-0 truncate text-right font-medium">{children}</dd>
+    </div>
+  );
+}
+
 export function SettingsScreen() {
   const state = useDemo();
   const [confirming, setConfirming] = useState(false);
@@ -51,61 +88,37 @@ export function SettingsScreen() {
   };
 
   return (
-    <ScreenMotion id="settings" className="space-y-4">
-      <ScreenHero
+    <ScreenMotion id="settings" className="space-y-12">
+      <PageHeader
         title="Settings"
-        description="Account, plan, connected services and your data."
         stat={state.plan === "pro" ? "Pro" : "Free"}
-        statLabel="current plan · demo data"
+        statLabel="plan · demo data"
       />
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Card>
-          <SectionTitle>Account</SectionTitle>
-          <dl className="space-y-3 text-sm">
-            <div className="flex justify-between gap-4">
-              <dt className="text-ink-muted">Name</dt>
-              <dd className="font-medium">{state.profile.fullName}</dd>
-            </div>
-            <div className="flex justify-between gap-4">
-              <dt className="text-ink-muted">Email</dt>
-              <dd className="truncate font-medium">{state.profile.email}</dd>
-            </div>
-            <div className="flex justify-between gap-4">
-              <dt className="text-ink-muted">Sign-in</dt>
-              <dd className="font-medium">Demo (no account)</dd>
-            </div>
-          </dl>
-          <Link href="/profile" className={`${btn.secondary} mt-5`}>
-            Edit in profile
-          </Link>
-        </Card>
-
-        <Card surface="sand">
-          <SectionTitle>Connected services</SectionTitle>
-          <ul className="space-y-3">
-            <li className="flex items-center justify-between gap-3">
-              <span className="flex items-center gap-3 text-sm font-medium">
-                <GitBranch className="size-5" aria-hidden /> GitHub
-              </span>
+      <div className="grid max-w-3xl grid-cols-1 gap-12">
+        <Section id="account" title="Account">
+          <dl className={listClass}>
+            <Row label="Name">{state.profile.fullName}</Row>
+            <Row label="Email">{state.profile.email}</Row>
+            <Row label="Sign-in">Demo (no account)</Row>
+            <Row label="GitHub">
               <Badge>Not connected</Badge>
-            </li>
-            <li className="flex items-center justify-between gap-3">
-              <span className="flex items-center gap-3 text-sm font-medium">
-                <Sparkles className="size-5" aria-hidden /> AI provider
-              </span>
+            </Row>
+            <Row label="AI provider">
               <Badge tone="warning">{ai.name}</Badge>
-            </li>
-          </ul>
-          <p className="mt-4 text-xs leading-5 text-ink-muted">
-            Drafts are written by a mock that only rearranges your profile
-            facts. Any AI provider can be plugged in later, as long as its terms
-            do not allow training on student data.
+            </Row>
+          </dl>
+          <p className="mt-3 text-xs leading-5 text-ink-muted">
+            Drafts come from a mock that only rearranges your profile facts. A
+            real provider must not train on student data.{" "}
+            <Link href="/profile" className="underline underline-offset-2">
+              Edit your details in Profile
+            </Link>
+            .
           </p>
-        </Card>
+        </Section>
 
-        <Card className="lg:col-span-2">
-          <SectionTitle>Plan</SectionTitle>
+        <Section id="plan" title="Plan">
           <div
             className="grid grid-cols-1 gap-3 md:grid-cols-2"
             role="radiogroup"
@@ -120,10 +133,10 @@ export function SettingsScreen() {
                   role="radio"
                   aria-checked={active}
                   onClick={() => updateDemo((s) => ({ ...s, plan: plan.id }))}
-                  className={`rounded-3xl border p-5 text-left transition-colors ${
+                  className={`rounded-3xl p-5 text-left transition-colors focus-visible:outline-2 focus-visible:outline-accent ${
                     active
-                      ? "border-ink bg-ink text-paper"
-                      : "border-line hover:border-ink/30"
+                      ? "bg-ink text-paper"
+                      : "bg-surface ring-1 ring-line hover:ring-ink/30"
                   }`}
                 >
                   <span className="flex items-baseline justify-between gap-3">
@@ -150,25 +163,23 @@ export function SettingsScreen() {
             })}
           </div>
           <p className="mt-3 text-xs text-ink-muted">
-            Demo: switching plans is free and changes nothing. Prices are a
-            proposal; payments are not set up.
+            Demo: switching is free. Prices are a proposal; payments are not set
+            up.
           </p>
-        </Card>
+        </Section>
 
-        <Card className="lg:col-span-2">
-          <SectionTitle>Your data</SectionTitle>
-          <p className="max-w-2xl text-sm text-ink-muted">
-            In this demo everything is stored only in this browser. Export it as
-            a file, or reset to the example data.
+        <Section id="data" title="Your data">
+          <p className="text-sm text-ink-muted">
+            Everything is stored only in this browser.
           </p>
-          <div className="mt-5 flex flex-wrap gap-2">
+          <div className="mt-4 flex flex-wrap gap-2">
             <button
               type="button"
               className={btn.secondary}
               onClick={exportData}
             >
               <Download className="size-4" aria-hidden />
-              Export my data (JSON)
+              Export my data
             </button>
             {confirming ? (
               <>
@@ -201,7 +212,7 @@ export function SettingsScreen() {
               </button>
             )}
           </div>
-        </Card>
+        </Section>
       </div>
     </ScreenMotion>
   );

@@ -1,15 +1,13 @@
 import {
   FileText,
   FolderCheck,
-  Gauge,
   GitBranch,
   Globe,
+  House,
   IdCard,
-  LayoutDashboard,
   type LucideIcon,
-  Mail,
+  Send,
   Settings,
-  Target,
   UserRound,
 } from "lucide-react";
 import type { AppMetrics } from "@/lib/demo/selectors";
@@ -23,11 +21,23 @@ export type NavValue = {
   label: string;
 };
 
+/**
+ * Screens are grouped by what the student is trying to do, not by module:
+ * get their basics right, apply for jobs, and be found online.
+ */
+export type NavGroup = "Start" | "Apply" | "Get found" | "Account";
+
+export const NAV_GROUPS: { id: NavGroup; label: string | null }[] = [
+  { id: "Start", label: null },
+  { id: "Apply", label: "Apply" },
+  { id: "Get found", label: "Get found" },
+];
+
 export type NavEntry = {
   href: string;
   label: string;
   icon: LucideIcon;
-  group: "Overview" | "Build" | "Account";
+  group: NavGroup;
   value?: (m: AppMetrics) => NavValue | undefined;
 };
 
@@ -40,34 +50,19 @@ const percent = (value: number, what: string): NavValue => ({
 /** Every app screen, in sidebar order. Shared by the sidebar, the phone
  * "More" sheet, the bottom bar and the search palette. */
 export const NAV: NavEntry[] = [
-  {
-    href: "/dashboard",
-    label: "Dashboard",
-    icon: LayoutDashboard,
-    group: "Overview",
-  },
+  { href: "/dashboard", label: "Home", icon: House, group: "Start" },
   {
     href: "/profile",
     label: "Profile",
     icon: UserRound,
-    group: "Overview",
+    group: "Start",
     value: (m) => percent(m.profile, "complete"),
   },
   {
-    href: "/evaluation",
-    label: "Evaluation",
-    icon: Gauge,
-    group: "Overview",
-    value: (m) => ({
-      text: String(m.readiness),
-      label: `readiness ${m.readiness} of 100`,
-    }),
-  },
-  {
     href: "/cv",
-    label: "CV & ATS check",
+    label: "CV",
     icon: FileText,
-    group: "Build",
+    group: "Apply",
     value: (m) => ({
       text: String(m.ats),
       tone: m.ats >= 85 ? "done" : undefined,
@@ -75,24 +70,28 @@ export const NAV: NavEntry[] = [
     }),
   },
   {
-    href: "/cover-letters",
-    label: "Cover letters",
-    icon: Mail,
-    group: "Build",
-    value: (m) => percent(m.letters, "done"),
-  },
-  {
     href: "/jobs",
-    label: "Job ads",
-    icon: Target,
-    group: "Build",
+    label: "Applications",
+    icon: Send,
+    group: "Apply",
     value: (m) => ({ text: String(m.jobs), label: `${m.jobs} job ads saved` }),
   },
   {
+    href: "/documents",
+    label: "Documents",
+    icon: FolderCheck,
+    group: "Apply",
+    value: (m) => ({
+      text: `${m.docsUploaded}/${m.docsRequired}`,
+      tone: m.docsUploaded === m.docsRequired ? "done" : undefined,
+      label: `${m.docsUploaded} of ${m.docsRequired} required documents uploaded`,
+    }),
+  },
+  {
     href: "/linkedin",
-    label: "LinkedIn studio",
+    label: "LinkedIn",
     icon: IdCard,
-    group: "Build",
+    group: "Get found",
     value: (m) => ({
       text: `${m.linkedinDone}/${m.linkedinTotal}`,
       tone: m.linkedinDone === m.linkedinTotal ? "done" : undefined,
@@ -103,7 +102,7 @@ export const NAV: NavEntry[] = [
     href: "/github",
     label: "GitHub",
     icon: GitBranch,
-    group: "Build",
+    group: "Get found",
     value: (m) =>
       m.toReview > 0
         ? {
@@ -117,22 +116,11 @@ export const NAV: NavEntry[] = [
     href: "/website",
     label: "Website",
     icon: Globe,
-    group: "Build",
+    group: "Get found",
     value: (m) =>
       m.published
         ? { text: "Live", tone: "done", label: "published" }
         : { text: "Draft", label: "not published" },
-  },
-  {
-    href: "/documents",
-    label: "Documents",
-    icon: FolderCheck,
-    group: "Build",
-    value: (m) => ({
-      text: `${m.docsUploaded}/${m.docsRequired}`,
-      tone: m.docsUploaded === m.docsRequired ? "done" : undefined,
-      label: `${m.docsUploaded} of ${m.docsRequired} required documents uploaded`,
-    }),
   },
   { href: "/settings", label: "Settings", icon: Settings, group: "Account" },
 ];

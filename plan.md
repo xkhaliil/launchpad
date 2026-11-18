@@ -93,8 +93,9 @@ Detailed rules for each module are in section 6.
 Sign up (email / GitHub / Google)
   → Onboarding: target role, location, level; upload existing CV or LinkedIn PDF export
   → Profile auto-filled from import; student reviews and completes it
-  → Dashboard: evaluation score + 8 module cards + "next best step"
-  → Loop: open next module → AI drafts → student edits/approves → score updates
+  → Home: evaluation score + one "next step" + the rest of the plan
+  → Loop: Start → Review panel shows each AI suggestion → accept / edit / skip →
+    score updates → panel offers the next step
   → All 8 done → Consistency check → no mismatches
   → Ready to apply: tailor CV + letter per job ad
 ```
@@ -407,19 +408,49 @@ Compare across: profile, CV(s), cover letters, LinkedIn suggested/imported text,
 **Public:** Landing · Pricing · Free ATS check · Blog/guides (MDX) · Sign up / Log in ·
 Privacy policy · Terms · Imprint (required in Germany).
 
-**App (auth required):**
+**App (auth required):** grouped by what the student is trying to do.
 1. Onboarding (target role, location, level, CV/LinkedIn PDF import)
-2. Dashboard (evaluation score, 8 module cards, next best step)
-3. Profile (single source of truth editor)
-4. CV builder (editor left, live PDF preview right, ATS check panel, export)
-5. Job ads (generic vs tailored pairs, match scores)
-6. Cover letters
-7. LinkedIn studio (mockup + copy buttons, banner generator, photo tool)
-8. GitHub manager (audit, proposals with diff + evidence, approve/apply/undo)
-9. Personal website (template picker, colours, preview, publish)
-10. Documents (checklist, uploads, merged PDF)
-11. Consistency + full evaluation report
-12. Settings (account, plan/billing, connected accounts, data export, delete account)
+2. **Home** (`/dashboard`): readiness score, the one next step, the rest of the plan.
+   The full evaluation lives here; `/evaluation` redirects to it.
+3. **Profile**: single source of truth editor
+4. *Apply* → **CV** (the page itself, ATS fixes beside it, export)
+5. *Apply* → **Applications** (`/jobs`): one entry per job ad with its match score and
+   its own cover letter, plus "Generic" for applications without an ad. Cover letters
+   live here; `/cover-letters` redirects to it.
+6. *Apply* → **Documents** (checklist, uploads, merged PDF)
+7. *Get found* → **LinkedIn** (preview, field checklist with copy, banner and photo tools)
+8. *Get found* → **GitHub** (proposed changes, repo health; changes are applied in Review)
+9. *Get found* → **Website** (template, colour, address, preview, publish)
+10. Settings (account menu: account, plan, data export, reset)
+
+### 7.1 UX architecture
+
+The aim: the student always knows where they stand, what to do next, and can do it in
+one click per decision. Rules for every screen:
+
+1. **One way to act: Review.** Everything the app proposes (GitHub changes, LinkedIn
+   text, CV bullet fixes, mismatches) is a suggestion in one queue
+   (`lib/demo/suggestions.ts`), shown one at a time in the Review panel
+   (`components/app/review.tsx`): Now → Suggested → why, then **Accept** or **Skip**,
+   and the next one appears. When an area is finished the panel shows the new score and
+   offers the next step, so a student can go through the whole app by pressing Enter.
+   Review opens from the top bar (desktop), the middle tab (phones), Home's Start buttons
+   and each screen's main button.
+2. **Never invent facts.** Where a suggestion needs a fact only the student knows, it
+   holds an `[ADD: …]` placeholder, pre-selected so typing replaces it; Accept stays
+   disabled until it is filled.
+3. **Same skeleton everywhere.** `PageHeader`: title, the screen's one number, its main
+   action. Then the thing itself (the CV page, the LinkedIn preview, the site preview),
+   and beside it only what needs doing.
+4. **Fewer boxes.** Content sits on the page, separated by space and hairlines
+   (`listClass`). A card is only for the one object a screen is about. One dark surface
+   in the app: Home's score.
+5. **Less text.** No paragraph under titles; at most one short line. What passed, rare
+   options and explanations go behind a disclosure ("6 checks passed").
+6. **Each number once.** The sidebar shows each screen's number; the top bar shows only
+   readiness and the Review count; a screen shows its own number in its header.
+7. **Lists open in place.** Profile items, LinkedIn fields and the like are one line each
+   and open into their form when clicked, one at a time.
 
 ---
 
@@ -561,6 +592,7 @@ German-language CVs (Lebenslauf, Anschreiben) · Chrome extension for job ads.
 | 2026-11-17 | Typeface is Nohemi (Rajesh Rajput; free for personal and commercial use, files must not be modified, "please do not redistribute"). Only Regular and Medium are bundled, in `app/fonts`. Section labels removed; phone menu added; GSAP SplitText and scroll-linked animations on the landing page | Owner's choice of font and design direction |
 | 2026-11-17 | All app screens built UI-first with mock data (no backend): demo state in the browser, real rules in `lib/core` with tests, AI behind a provider interface (`lib/ai/provider.ts`) with a mock provider. Sign up / log in open the demo. Single Next.js app for now, not the monorepo layout in section 4 | Owner's choice: "do the UI first with mock data"; owner wants a cheaper or free AI provider than Anthropic |
 | 2026-11-18 | App layout: light sidebar that can collapse to an icon rail (choice remembered in the browser), with a number beside each screen (profile %, ATS score, changes to review…); a top bar with the breadcrumb, live metrics (readiness and its change, ATS, applications, to review, documents) and search; Ctrl/⌘ K search palette; on phones a bottom tab bar with badges and a "More" sheet for the other screens. Screen list and their numbers come from one place, `components/app/nav.ts` | Owner rejected the dark sidebar ("everything looks the same") and asked for numeric data in a top or bottom bar, laid out like a real app |
+| 2026-11-18 | UX architecture (section 7.1): one Review queue and panel for every suggestion; Evaluation merged into Home and Cover letters into Applications (8 screens in "Apply" and "Get found" groups); every screen on one skeleton with fewer cards and less text; the top bar keeps readiness and the Review count, the phone tab bar gets Review in the middle | Owner: the app felt hard to use, with "a lot of cards in my face and a lot of text"; asked for "the best user experience with the easiest way to interact" |
 
 ---
 

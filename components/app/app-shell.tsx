@@ -4,17 +4,16 @@ import {
   ChevronRight,
   ChevronsUpDown,
   FileText,
-  Gauge,
-  LayoutDashboard,
+  House,
   LayoutGrid,
+  ListChecks,
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
   Search,
+  Send,
   Settings,
-  Target,
-  TrendingDown,
-  TrendingUp,
+  Sparkles,
   X,
 } from "lucide-react";
 import Link from "next/link";
@@ -32,7 +31,8 @@ import { useDemo } from "@/lib/demo/store";
 import { setUiPref, useUiPrefs } from "@/lib/demo/ui-prefs";
 import { APP_NAME } from "@/lib/site";
 import { CommandPalette } from "./command-palette";
-import { findNav, NAV, type NavEntry, type NavValue } from "./nav";
+import { findNav, NAV, NAV_GROUPS, type NavEntry, type NavValue } from "./nav";
+import { ReviewProvider, useReview } from "./review";
 import { initials } from "./ui";
 
 const EASE = "ease-[cubic-bezier(0.22,1,0.36,1)]";
@@ -124,7 +124,7 @@ function SidebarItem({
       <entry.icon
         aria-hidden
         strokeWidth={1.75}
-        className={`size-[18px] shrink-0 transition-colors ${
+        className={`size-4.5 shrink-0 transition-colors ${
           active ? "text-accent" : "text-ink/45 group-hover:text-ink/70"
         }`}
       />
@@ -227,6 +227,20 @@ function UserMenu({ collapsed }: { collapsed: boolean }) {
             <Settings aria-hidden className="size-4" strokeWidth={1.75} />{" "}
             Settings
           </Link>
+          {plan === "free" ? (
+            <Link
+              href="/settings#plan"
+              onClick={() => setOpen(false)}
+              className={item}
+            >
+              <Sparkles
+                aria-hidden
+                className="size-4 text-accent"
+                strokeWidth={1.75}
+              />{" "}
+              Upgrade to Pro
+            </Link>
+          ) : null}
           <Link href="/" onClick={() => setOpen(false)} className={item}>
             <LogOut aria-hidden className="size-4" strokeWidth={1.75} /> Back to
             the website
@@ -246,15 +260,13 @@ function Sidebar({
 }) {
   const pathname = usePathname();
   const { sidebarCollapsed: collapsed } = useUiPrefs();
-  const { plan } = useDemo();
   const shortcut = useShortcutLabel();
-  const groups = ["Overview", "Build"] as const;
   const toggle = () => setUiPref("sidebarCollapsed", !collapsed);
 
   return (
     <aside
       className={`sticky top-0 z-40 hidden h-dvh shrink-0 flex-col border-r border-line bg-sand/70 transition-[width] duration-300 lg:flex print:hidden ${EASE} ${
-        collapsed ? "w-[4.75rem]" : "w-[16.5rem]"
+        collapsed ? "w-19" : "w-66"
       }`}
     >
       {/* Brand and collapse */}
@@ -284,7 +296,7 @@ function Sidebar({
             className={`grid size-9 place-items-center rounded-lg text-ink/45 transition-colors hover:bg-ink/5 hover:text-ink ${focusRing}`}
           >
             <PanelLeftClose
-              className="size-[18px]"
+              className="size-4.5"
               strokeWidth={1.75}
               aria-hidden
             />
@@ -303,7 +315,7 @@ function Sidebar({
             className={`mx-auto mb-2 grid size-11 place-items-center rounded-xl text-ink/45 transition-colors hover:bg-ink/5 hover:text-ink ${focusRing}`}
           >
             <PanelLeftOpen
-              className="size-[18px]"
+              className="size-4.5"
               strokeWidth={1.75}
               aria-hidden
             />
@@ -327,13 +339,11 @@ function Sidebar({
           // Collapsed, the rail is short and must not scroll: a scroll area
           // would clip the tooltips that stick out to the right.
           className={`-mx-3 min-h-0 flex-1 px-3 pb-3 ${
-            collapsed
-              ? "overflow-visible"
-              : "[scrollbar-width:thin] overflow-y-auto"
+            collapsed ? "overflow-visible" : "scrollbar-thin overflow-y-auto"
           }`}
         >
-          {groups.map((group, index) => (
-            <div key={group} className={index > 0 ? "mt-5" : ""}>
+          {NAV_GROUPS.map((group, index) => (
+            <div key={group.id} className={index > 0 ? "mt-5" : ""}>
               {collapsed ? (
                 index > 0 ? (
                   <span
@@ -341,46 +351,28 @@ function Sidebar({
                     className="mx-auto mb-3 block h-px w-8 bg-line"
                   />
                 ) : null
-              ) : (
+              ) : group.label ? (
                 <p className="mb-1.5 px-2.5 text-[11px] font-medium text-ink/40">
-                  {group}
+                  {group.label}
                 </p>
-              )}
+              ) : null}
               <ul className="space-y-0.5">
-                {NAV.filter((entry) => entry.group === group).map((entry) => (
-                  <li key={entry.href}>
-                    <SidebarItem
-                      entry={entry}
-                      active={isActive(pathname, entry.href)}
-                      collapsed={collapsed}
-                      metrics={metrics}
-                    />
-                  </li>
-                ))}
+                {NAV.filter((entry) => entry.group === group.id).map(
+                  (entry) => (
+                    <li key={entry.href}>
+                      <SidebarItem
+                        entry={entry}
+                        active={isActive(pathname, entry.href)}
+                        collapsed={collapsed}
+                        metrics={metrics}
+                      />
+                    </li>
+                  ),
+                )}
               </ul>
             </div>
           ))}
         </nav>
-
-        {/* A single dark accent in the sidebar: the plan. */}
-        {!collapsed && plan === "free" ? (
-          <Link
-            href="/settings"
-            className={`group relative isolate mb-2 block overflow-clip rounded-2xl bg-ink p-4 text-paper [@media(max-height:820px)]:hidden ${focusRing}`}
-          >
-            <span
-              aria-hidden
-              className="absolute -top-16 -right-10 -z-10 size-40 bg-radial-[closest-side] from-accent/50 to-transparent"
-            />
-            <span className="block text-xs text-glow-1">Free plan</span>
-            <span className="mt-1 block text-sm leading-snug font-medium">
-              Tailor every application with Pro
-            </span>
-            <span className="mt-3 inline-flex items-center gap-1 text-xs text-paper/70 group-hover:text-paper">
-              See plans <ChevronRight className="size-3.5" aria-hidden />
-            </span>
-          </Link>
-        ) : null}
 
         <div className="border-t border-line py-2">
           <UserMenu collapsed={collapsed} />
@@ -394,25 +386,60 @@ function Sidebar({
 /* Top bar                                                             */
 /* ------------------------------------------------------------------ */
 
-function Metric({
-  href,
-  label,
-  children,
-  className = "",
-}: {
-  href: string;
-  label: string;
-  children: ReactNode;
-  className?: string;
-}) {
+/** Readiness as a small meter. Links to Home, where it is explained. */
+function Readiness({ metrics }: { metrics: AppMetrics }) {
+  const up = metrics.readinessDelta >= 0;
   return (
     <Link
-      href={href}
-      className={`flex h-10 items-center gap-2 px-3.5 whitespace-nowrap transition-colors first:rounded-l-full last:rounded-r-full hover:bg-ink/[0.035] ${focusRing} ${className}`}
+      href="/dashboard"
+      aria-label={`Readiness ${metrics.readiness} of 100, ${up ? "up" : "down"} ${Math.abs(metrics.readinessDelta)} since ${metrics.since}`}
+      className={`hidden h-10 items-center gap-3 rounded-full bg-surface pr-3.5 pl-4 ring-1 ring-line transition-colors hover:ring-ink/25 md:flex ${focusRing}`}
     >
-      <span className="text-xs text-ink-muted">{label}</span>
-      <span className="text-sm font-medium tabular-nums">{children}</span>
+      <span className="text-xs text-ink-muted">Readiness</span>
+      <span
+        aria-hidden
+        className="h-1.5 w-16 overflow-hidden rounded-full bg-ink/8 xl:w-24"
+      >
+        <span
+          className="block h-full rounded-full bg-accent transition-[width] duration-700"
+          style={{ width: `${metrics.readiness}%` }}
+        />
+      </span>
+      <span aria-hidden className="text-sm font-medium tabular-nums">
+        {metrics.readiness}
+        <span className="font-normal text-ink-muted">/100</span>
+      </span>
+      <span
+        aria-hidden
+        className={`text-xs tabular-nums ${up ? "text-success" : "text-danger"}`}
+      >
+        {up ? "+" : ""}
+        {metrics.readinessDelta}
+      </span>
     </Link>
+  );
+}
+
+/** The app's main action: go through what it proposes. */
+function ReviewButton() {
+  const { open, count } = useReview();
+  return (
+    <button
+      type="button"
+      onClick={() => open()}
+      className={`hidden h-10 items-center gap-2 rounded-full bg-ink pr-2 pl-3.5 text-sm font-medium text-paper transition-colors hover:bg-ink/85 lg:flex ${focusRing}`}
+    >
+      <ListChecks className="size-4 text-glow-1" aria-hidden />
+      Review
+      <span
+        className={`grid h-6 min-w-6 place-items-center rounded-full px-1.5 text-xs tabular-nums ${
+          count > 0 ? "bg-accent text-surface" : "bg-white/10 text-paper/70"
+        }`}
+      >
+        {count}
+        <span className="sr-only"> suggestions</span>
+      </span>
+    </button>
   );
 }
 
@@ -425,9 +452,8 @@ function TopBar({
 }) {
   const pathname = usePathname();
   const entry = findNav(pathname);
+  const group = NAV_GROUPS.find((item) => item.id === entry?.group)?.label;
   const shortcut = useShortcutLabel();
-  const up = metrics.readinessDelta >= 0;
-  const Trend = up ? TrendingUp : TrendingDown;
 
   return (
     <header className="sticky top-0 z-30 border-b border-line bg-paper/85 backdrop-blur-md print:hidden">
@@ -442,10 +468,14 @@ function TopBar({
         {entry ? (
           <nav aria-label="Breadcrumb" className="hidden min-w-0 lg:block">
             <ol className="flex items-center gap-1.5 text-sm">
-              <li className="text-ink-muted">{entry.group}</li>
-              <li aria-hidden>
-                <ChevronRight className="size-3.5 text-ink/30" />
-              </li>
+              {group ? (
+                <>
+                  <li className="text-ink-muted">{group}</li>
+                  <li aria-hidden>
+                    <ChevronRight className="size-3.5 text-ink/30" />
+                  </li>
+                </>
+              ) : null}
               <li className="truncate font-medium" aria-current="page">
                 {entry.label}
               </li>
@@ -454,58 +484,17 @@ function TopBar({
         ) : null}
 
         <div className="ml-auto flex items-center gap-2">
-          {/* Live numbers, each linking to where it comes from. */}
-          <div className="hidden items-center divide-x divide-line rounded-full bg-surface ring-1 ring-line md:flex">
-            <Metric href="/evaluation" label="Readiness">
-              {metrics.readiness}
-              <span
-                className={`ml-1.5 inline-flex items-center gap-0.5 text-xs ${up ? "text-success" : "text-danger"}`}
-                title={`Since ${metrics.since}`}
-              >
-                <Trend className="size-3.5" aria-hidden />
-                {up ? "+" : ""}
-                {metrics.readinessDelta}
-                <span className="sr-only"> since {metrics.since}</span>
-              </span>
-            </Metric>
-            <Metric href="/cv" label="ATS">
-              {metrics.ats}
-            </Metric>
-            <Metric
-              href="/jobs"
-              label="Applications"
-              className="hidden xl:flex"
-            >
-              {metrics.jobs}
-            </Metric>
-            <Metric href="/github" label="To review" className="hidden xl:flex">
-              <span className="inline-flex items-center gap-1.5">
-                {metrics.toReview > 0 ? (
-                  <span
-                    aria-hidden
-                    className="size-1.5 rounded-full bg-accent"
-                  />
-                ) : null}
-                {metrics.toReview}
-              </span>
-            </Metric>
-            <Metric
-              href="/documents"
-              label="Documents"
-              className="hidden 2xl:flex"
-            >
-              {metrics.docsUploaded}/{metrics.docsRequired}
-            </Metric>
-          </div>
+          <Readiness metrics={metrics} />
+          <ReviewButton />
 
           <button
             type="button"
             onClick={onSearch}
             aria-label="Search screens"
-            className={`hidden h-10 items-center gap-2 rounded-full bg-surface pr-2 pl-3.5 text-sm text-ink-muted ring-1 ring-line transition-colors hover:text-ink sm:flex lg:hidden xl:flex ${focusRing}`}
+            className={`hidden h-10 items-center gap-2 rounded-full bg-surface pr-2 pl-3.5 text-sm text-ink-muted ring-1 ring-line transition-colors hover:text-ink sm:flex ${focusRing}`}
           >
             <Search className="size-4" aria-hidden />
-            <kbd className="rounded-md bg-ink/5 px-1.5 py-0.5 font-sans text-[11px] text-ink/50">
+            <kbd className="hidden rounded-md bg-ink/5 px-1.5 py-0.5 font-sans text-[11px] text-ink/50 xl:inline">
               {shortcut}
             </kbd>
           </button>
@@ -517,16 +506,15 @@ function TopBar({
             aria-label="Search screens"
             className={`grid size-10 place-items-center rounded-full text-ink/70 hover:bg-ink/5 sm:hidden ${focusRing}`}
           >
-            <Search className="size-[18px]" aria-hidden />
+            <Search className="size-4.5" aria-hidden />
           </button>
           <Link
-            href="/evaluation"
+            href="/dashboard"
             aria-label={`Readiness ${metrics.readiness} of 100`}
-            className={`flex h-10 items-center gap-1.5 rounded-full bg-ink pr-3.5 pl-3 text-sm font-medium text-paper tabular-nums md:hidden ${focusRing}`}
+            className={`flex h-10 items-center rounded-full bg-surface px-3.5 text-sm font-medium tabular-nums ring-1 ring-line md:hidden ${focusRing}`}
           >
-            <Gauge className="size-4 text-glow-1" aria-hidden />
             {metrics.readiness}
-            <span className="text-paper/50">/100</span>
+            <span className="font-normal text-ink-muted">/100</span>
           </Link>
         </div>
       </div>
@@ -539,28 +527,24 @@ function TopBar({
 /* ------------------------------------------------------------------ */
 
 const TABS = [
-  { href: "/dashboard", label: "Home", icon: LayoutDashboard },
+  { href: "/dashboard", label: "Home", icon: House },
   { href: "/cv", label: "CV", icon: FileText },
-  { href: "/jobs", label: "Jobs", icon: Target },
-  { href: "/evaluation", label: "Score", icon: Gauge },
+  { href: "/jobs", label: "Apply", icon: Send },
 ];
 
 function BottomBar({
-  metrics,
   moreOpen,
   onMore,
 }: {
-  metrics: AppMetrics;
   moreOpen: boolean;
   onMore: () => void;
 }) {
   const pathname = usePathname();
+  const { open, count } = useReview();
   const inMore = !TABS.some((tab) => isActive(pathname, tab.href));
-  const waiting = metrics.toReview + metrics.mismatches;
-  const badges: Record<string, number | undefined> = { "/jobs": metrics.jobs };
 
   const tabClass = (active: boolean) =>
-    `relative flex h-full flex-col items-center justify-center gap-1 text-[11px] transition-colors ${focusRing} ${
+    `relative flex h-full w-full flex-col items-center justify-center gap-1 text-[11px] transition-colors ${focusRing} ${
       active ? "font-medium text-ink" : "text-ink/50"
     }`;
   const indicator = (
@@ -569,6 +553,26 @@ function BottomBar({
       className="absolute top-0 h-0.5 w-8 rounded-b-full bg-accent"
     />
   );
+  const tab = (item: (typeof TABS)[number]) => {
+    const active = isActive(pathname, item.href);
+    return (
+      <li key={item.href}>
+        <Link
+          href={item.href}
+          aria-current={active ? "page" : undefined}
+          className={tabClass(active)}
+        >
+          {active ? indicator : null}
+          <item.icon
+            aria-hidden
+            strokeWidth={1.75}
+            className={`size-5.5 ${active ? "text-accent" : ""}`}
+          />
+          {item.label}
+        </Link>
+      </li>
+    );
+  };
 
   return (
     <nav
@@ -576,57 +580,42 @@ function BottomBar({
       className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface/92 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden print:hidden"
     >
       <ul className="mx-auto grid h-16 max-w-lg grid-cols-5">
-        {TABS.map((tab) => {
-          const active = isActive(pathname, tab.href);
-          const badge = badges[tab.href];
-          return (
-            <li key={tab.href}>
-              <Link
-                href={tab.href}
-                aria-current={active ? "page" : undefined}
-                className={tabClass(active)}
-              >
-                {active ? indicator : null}
-                <span className="relative">
-                  <tab.icon
-                    aria-hidden
-                    strokeWidth={1.75}
-                    className={`size-[22px] ${active ? "text-accent" : ""}`}
-                  />
-                  {badge ? (
-                    <span className="absolute -top-1.5 -right-2.5 grid h-4 min-w-4 place-items-center rounded-full bg-ink px-1 text-[10px] font-medium text-paper tabular-nums">
-                      {badge}
-                      <span className="sr-only"> saved</span>
-                    </span>
-                  ) : null}
-                </span>
-                {tab.label}
-              </Link>
-            </li>
-          );
-        })}
+        {tab(TABS[0])}
+        {tab(TABS[1])}
+        {/* The main action sits in the middle, within reach of a thumb. */}
+        <li className="flex justify-center">
+          <button
+            type="button"
+            onClick={() => open()}
+            className={`relative -mt-6 flex flex-col items-center gap-1 text-[11px] font-medium text-ink ${focusRing} rounded-2xl`}
+          >
+            <span className="grid size-13 place-items-center rounded-full bg-ink text-paper shadow-lift ring-4 ring-paper">
+              <ListChecks className="size-5.5 text-glow-1" aria-hidden />
+            </span>
+            {count > 0 ? (
+              <span className="absolute top-0 -right-1 grid h-5 min-w-5 place-items-center rounded-full bg-accent px-1 text-[11px] font-medium text-surface tabular-nums ring-2 ring-paper">
+                {count}
+              </span>
+            ) : null}
+            Review
+            <span className="sr-only">, {count} suggestions</span>
+          </button>
+        </li>
+        {tab(TABS[2])}
         <li>
           <button
             type="button"
             onClick={onMore}
             aria-expanded={moreOpen}
             aria-controls="more-sheet"
-            className={`w-full ${tabClass(inMore || moreOpen)}`}
+            className={tabClass(inMore || moreOpen)}
           >
             {inMore ? indicator : null}
-            <span className="relative">
-              <LayoutGrid
-                aria-hidden
-                strokeWidth={1.75}
-                className={`size-[22px] ${inMore || moreOpen ? "text-accent" : ""}`}
-              />
-              {waiting > 0 ? (
-                <span className="absolute -top-1.5 -right-2.5 grid h-4 min-w-4 place-items-center rounded-full bg-accent px-1 text-[10px] font-medium text-surface tabular-nums">
-                  {waiting}
-                  <span className="sr-only"> things need your attention</span>
-                </span>
-              ) : null}
-            </span>
+            <LayoutGrid
+              aria-hidden
+              strokeWidth={1.75}
+              className={`size-5.5 ${inMore || moreOpen ? "text-accent" : ""}`}
+            />
             More
           </button>
         </li>
@@ -647,6 +636,7 @@ function MoreSheet({
   const pathname = usePathname();
   const { profile, plan } = useDemo();
   if (!open) return null;
+  const groups = [...NAV_GROUPS, { id: "Account" as const, label: "Account" }];
 
   return (
     <div className="fixed inset-0 z-50 lg:hidden">
@@ -676,7 +666,7 @@ function MoreSheet({
             aria-label="Close"
             className={`mt-2 grid size-10 place-items-center rounded-full bg-ink/5 text-ink ${focusRing}`}
           >
-            <X className="size-[18px]" aria-hidden />
+            <X className="size-4.5" aria-hidden />
           </button>
         </div>
 
@@ -684,41 +674,45 @@ function MoreSheet({
           aria-label="All screens"
           className="min-h-0 flex-1 overflow-y-auto px-3 pb-3"
         >
-          {(["Overview", "Build", "Account"] as const).map((group) => (
-            <div key={group} className="mt-3">
-              <p className="mb-1 px-3 text-xs font-medium text-ink/40">
-                {group}
-              </p>
+          {groups.map((group) => (
+            <div key={group.id} className="mt-3">
+              {group.label ? (
+                <p className="mb-1 px-3 text-xs font-medium text-ink/40">
+                  {group.label}
+                </p>
+              ) : null}
               <ul className="overflow-hidden rounded-2xl bg-surface ring-1 ring-line">
-                {NAV.filter((entry) => entry.group === group).map((entry) => {
-                  const active = isActive(pathname, entry.href);
-                  const value = entry.value?.(metrics);
-                  return (
-                    <li
-                      key={entry.href}
-                      className="border-b border-line last:border-b-0"
-                    >
-                      <Link
-                        href={entry.href}
-                        onClick={onClose}
-                        aria-current={active ? "page" : undefined}
-                        className={`flex min-h-13 items-center gap-3 px-4 text-[15px] ${focusRing} ${
-                          active ? "bg-accent-soft font-medium" : ""
-                        }`}
+                {NAV.filter((entry) => entry.group === group.id).map(
+                  (entry) => {
+                    const active = isActive(pathname, entry.href);
+                    const value = entry.value?.(metrics);
+                    return (
+                      <li
+                        key={entry.href}
+                        className="border-b border-line last:border-b-0"
                       >
-                        <entry.icon
-                          aria-hidden
-                          strokeWidth={1.75}
-                          className={`size-5 ${active ? "text-accent" : "text-ink/50"}`}
-                        />
-                        <span className="flex-1">{entry.label}</span>
-                        {value ? (
-                          <ValueBadge value={value} active={active} />
-                        ) : null}
-                      </Link>
-                    </li>
-                  );
-                })}
+                        <Link
+                          href={entry.href}
+                          onClick={onClose}
+                          aria-current={active ? "page" : undefined}
+                          className={`flex min-h-13 items-center gap-3 px-4 text-[15px] ${focusRing} ${
+                            active ? "bg-accent-soft font-medium" : ""
+                          }`}
+                        >
+                          <entry.icon
+                            aria-hidden
+                            strokeWidth={1.75}
+                            className={`size-5 ${active ? "text-accent" : "text-ink/50"}`}
+                          />
+                          <span className="flex-1">{entry.label}</span>
+                          {value ? (
+                            <ValueBadge value={value} active={active} />
+                          ) : null}
+                        </Link>
+                      </li>
+                    );
+                  },
+                )}
               </ul>
             </div>
           ))}
@@ -752,8 +746,9 @@ function MoreSheet({
 
 /**
  * Layout for every app screen: a light sidebar (collapsible to icons) and a
- * top bar with live numbers on desktop; on phones a top bar and a bottom tab
- * bar with a "More" sheet. Ctrl/Cmd + K opens search anywhere.
+ * top bar with readiness and the Review button on desktop; on phones a top
+ * bar and a bottom tab bar with Review in the middle and a "More" sheet.
+ * Ctrl/Cmd + K opens search anywhere.
  */
 export function AppShell({ children }: { children: ReactNode }) {
   const state = useDemo();
@@ -807,34 +802,35 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, [pathname]);
 
   return (
-    <div className="flex min-h-dvh bg-paper print:block print:bg-white">
-      <Sidebar metrics={metrics} onSearch={openPalette} />
+    <ReviewProvider>
+      <div className="flex min-h-dvh bg-paper print:block print:bg-white">
+        <Sidebar metrics={metrics} onSearch={openPalette} />
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <TopBar metrics={metrics} onSearch={openPalette} />
-        <main
-          id="main"
-          className="min-w-0 flex-1 px-4 pt-5 pb-28 sm:px-6 lg:px-8 lg:pt-6 lg:pb-16 print:p-0"
-        >
-          <div className="mx-auto w-full max-w-6xl">{children}</div>
-        </main>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <TopBar metrics={metrics} onSearch={openPalette} />
+          <main
+            id="main"
+            className="min-w-0 flex-1 px-4 pt-6 pb-32 sm:px-6 lg:px-10 lg:pt-10 lg:pb-20 print:p-0"
+          >
+            <div className="mx-auto w-full max-w-6xl">{children}</div>
+          </main>
+        </div>
+
+        <BottomBar
+          moreOpen={moreOpen}
+          onMore={() => setMoreOpen((value) => !value)}
+        />
+        <MoreSheet
+          open={moreOpen}
+          onClose={() => setMoreOpen(false)}
+          metrics={metrics}
+        />
+        <CommandPalette
+          open={paletteOpen}
+          onClose={closePalette}
+          metrics={metrics}
+        />
       </div>
-
-      <BottomBar
-        metrics={metrics}
-        moreOpen={moreOpen}
-        onMore={() => setMoreOpen((value) => !value)}
-      />
-      <MoreSheet
-        open={moreOpen}
-        onClose={() => setMoreOpen(false)}
-        metrics={metrics}
-      />
-      <CommandPalette
-        open={paletteOpen}
-        onClose={closePalette}
-        metrics={metrics}
-      />
-    </div>
+    </ReviewProvider>
   );
 }

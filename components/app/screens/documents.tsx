@@ -12,8 +12,8 @@ import { useState } from "react";
 import { type DocType, docSpecs, standardFileName } from "@/lib/demo/data";
 import { requiredDocs } from "@/lib/demo/selectors";
 import { updateDemo, useDemo } from "@/lib/demo/store";
-import { Badge, btn, Card, DemoNote, ScreenHero, SectionTitle } from "../ui";
 import { ScreenMotion } from "../motion";
+import { btn, DemoNote, Disclosure, listClass, PageHeader } from "../ui";
 
 const MAX_BYTES = 10 * 1024 * 1024;
 const ACCEPT = ["application/pdf", "image/jpeg", "image/png"];
@@ -66,37 +66,21 @@ export function DocumentsScreen() {
   };
 
   return (
-    <ScreenMotion id="documents" className="space-y-4">
-      <ScreenHero
+    <ScreenMotion id="documents" className="space-y-8">
+      <PageHeader
         title="Documents"
-        description="Everything a German application usually asks for, with standard file names and one merged application PDF."
-        stat={uploadedRequired}
-        statSuffix={`/${required.length}`}
-        statLabel="required documents uploaded"
-      >
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <span className="block h-2.5 min-w-56 flex-1 overflow-hidden rounded-full bg-white/10">
-            <span
-              data-motion="fill"
-              className="block h-full rounded-full bg-glow-1 transition-[width] duration-700"
-              style={{
-                width: `${required.length ? (uploadedRequired / required.length) * 100 : 100}%`,
-              }}
-            />
-          </span>
-          <label className="flex min-h-10 cursor-pointer items-center gap-3 text-sm text-paper/80">
-            <input
-              type="checkbox"
-              className="size-4 accent-[var(--color-glow-1)]"
-              checked={nonEu}
-              onChange={(e) =>
-                updateDemo((s) => ({ ...s, nonEu: e.target.checked }))
-              }
-            />
-            I need a visa or work permit (non-EU)
-          </label>
-        </div>
-      </ScreenHero>
+        stat={`${uploadedRequired}/${required.length}`}
+        statLabel="required uploaded"
+        actions={
+          <button
+            type="button"
+            className={btn.secondary}
+            onClick={() => setMergedNote(true)}
+          >
+            Create merged PDF
+          </button>
+        }
+      />
 
       {error ? (
         <p
@@ -106,139 +90,139 @@ export function DocumentsScreen() {
           {error}
         </p>
       ) : null}
+      {mergedNote ? (
+        <DemoNote>
+          Merging needs the backend. In the demo only file names are kept.
+        </DemoNote>
+      ) : null}
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,8fr)_minmax(0,4fr)]">
-        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <section data-motion="tile" data-motion-hide aria-label="Documents">
+        <ul className={listClass}>
           {specs.map((spec) => {
             const file = documents[spec.type];
             return (
-              <li key={spec.type}>
-                <Card className="flex h-full flex-col">
-                  <div className="flex items-start justify-between gap-3">
-                    <span
-                      aria-hidden
-                      className={`grid size-9 shrink-0 place-items-center rounded-full ${file ? "bg-success-soft text-success" : "bg-paper text-ink-muted"}`}
-                    >
-                      {file ? (
-                        <Check className="size-4" strokeWidth={3} />
-                      ) : (
-                        <CircleDashed className="size-4" />
-                      )}
-                    </span>
-                    <Badge
-                      tone={
-                        file ? "success" : spec.required ? "warning" : "neutral"
+              <li
+                key={spec.type}
+                className="flex flex-wrap items-center gap-x-4 gap-y-2 py-4"
+              >
+                <span
+                  aria-hidden
+                  className={`grid size-9 shrink-0 place-items-center rounded-full ${
+                    file
+                      ? "bg-success-soft text-success"
+                      : "bg-ink/5 text-ink-muted"
+                  }`}
+                >
+                  {file ? (
+                    <Check className="size-4" strokeWidth={2.5} />
+                  ) : (
+                    <CircleDashed className="size-4" />
+                  )}
+                </span>
+                <span className="min-w-0 flex-1 basis-48">
+                  <span className="block text-[15px] font-medium">
+                    {spec.label}
+                    {!spec.required ? (
+                      <span className="ml-2 text-sm font-normal text-ink-muted">
+                        optional
+                      </span>
+                    ) : null}
+                  </span>
+                  <span className="block truncate text-sm text-ink-muted">
+                    {file ? (
+                      <>
+                        Saved as{" "}
+                        <span className="font-mono text-xs text-ink">
+                          {standardFileName(profile.fullName, spec.label)}
+                        </span>
+                      </>
+                    ) : (
+                      spec.description
+                    )}
+                  </span>
+                </span>
+                <span className="ml-auto flex items-center gap-1">
+                  {file ? (
+                    <button
+                      type="button"
+                      className={btn.icon}
+                      aria-label={`Remove ${spec.label}`}
+                      onClick={() =>
+                        updateDemo((s) => {
+                          const next = { ...s.documents };
+                          delete next[spec.type];
+                          return { ...s, documents: next };
+                        })
                       }
                     >
-                      {file
-                        ? "Uploaded"
-                        : spec.required
-                          ? "Required"
-                          : "Optional"}
-                    </Badge>
-                  </div>
-                  <p className="mt-4 font-medium">{spec.label}</p>
-                  <p className="mt-1 text-sm text-ink-muted">
-                    {spec.description}
-                  </p>
-                  {file ? (
-                    <p className="mt-3 rounded-xl bg-paper px-3 py-2 font-mono text-xs break-all">
-                      {standardFileName(profile.fullName, spec.label)}
-                      <span className="mt-0.5 block font-sans text-ink-muted">
-                        from {file}
-                      </span>
-                    </p>
+                      <Trash2 className="size-4" aria-hidden />
+                    </button>
                   ) : null}
-                  <div className="mt-auto flex flex-wrap gap-2 pt-4">
-                    <label className={`${btn.secondary} cursor-pointer`}>
-                      <FileUp className="size-4" aria-hidden />
-                      {file ? "Replace" : "Upload"}
-                      <input
-                        type="file"
-                        accept=".pdf,.jpg,.jpeg,.png"
-                        className="sr-only"
-                        onChange={(e) => {
-                          upload(spec.type, e.target.files?.[0]);
-                          e.target.value = "";
-                        }}
-                      />
-                    </label>
-                    {file ? (
-                      <button
-                        type="button"
-                        className={btn.icon}
-                        aria-label={`Remove ${spec.label}`}
-                        onClick={() =>
-                          updateDemo((s) => {
-                            const next = { ...s.documents };
-                            delete next[spec.type];
-                            return { ...s, documents: next };
-                          })
-                        }
-                      >
-                        <Trash2 className="size-4" aria-hidden />
-                      </button>
-                    ) : null}
-                  </div>
-                </Card>
+                  <label
+                    className={`${file || !spec.required ? btn.small : `${btn.primary} h-9`} cursor-pointer`}
+                  >
+                    <FileUp className="size-4" aria-hidden />
+                    {file ? "Replace" : "Upload"}
+                    <span className="sr-only"> {spec.label}</span>
+                    <input
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      className="sr-only"
+                      onChange={(e) => {
+                        upload(spec.type, e.target.files?.[0]);
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                </span>
               </li>
             );
           })}
         </ul>
 
-        <Card surface="sand" className="h-fit">
-          <SectionTitle>Merged application PDF</SectionTitle>
-          <p className="mb-4 text-sm text-ink-muted">
-            One file in this order, with bookmarks.
-          </p>
-          <ol className="space-y-2">
-            {ordered.map((part, index) => (
-              <li
-                key={part}
-                className="flex items-center gap-2 rounded-xl bg-paper py-1 pr-1 pl-3 text-sm"
+        <label className="mt-4 flex min-h-10 w-fit cursor-pointer items-center gap-3 text-sm text-ink-muted">
+          <input
+            type="checkbox"
+            className="size-4 accent-[var(--color-accent)]"
+            checked={nonEu}
+            onChange={(e) =>
+              updateDemo((s) => ({ ...s, nonEu: e.target.checked }))
+            }
+          />
+          I need a visa or work permit (non-EU)
+        </label>
+      </section>
+
+      <Disclosure summary={`Order in the merged PDF · ${ordered.length} files`}>
+        <ol className="max-w-md space-y-1 pl-6">
+          {ordered.map((part, index) => (
+            <li key={part} className="flex items-center gap-2 text-sm">
+              <span className="w-5 text-ink-muted tabular-nums">
+                {index + 1}
+              </span>
+              <span className="min-w-0 flex-1 truncate">{part}</span>
+              <button
+                type="button"
+                className={`${btn.icon} size-8`}
+                aria-label={`Move ${part} up`}
+                disabled={index === 0}
+                onClick={() => move(index, -1)}
               >
-                <span className="w-5 text-ink-muted tabular-nums">
-                  {index + 1}
-                </span>
-                <span className="min-w-0 flex-1 truncate">{part}</span>
-                <button
-                  type="button"
-                  className={btn.icon}
-                  aria-label={`Move ${part} up`}
-                  disabled={index === 0}
-                  onClick={() => move(index, -1)}
-                >
-                  <ArrowUp className="size-4" aria-hidden />
-                </button>
-                <button
-                  type="button"
-                  className={btn.icon}
-                  aria-label={`Move ${part} down`}
-                  disabled={index === ordered.length - 1}
-                  onClick={() => move(index, 1)}
-                >
-                  <ArrowDown className="size-4" aria-hidden />
-                </button>
-              </li>
-            ))}
-          </ol>
-          <button
-            type="button"
-            className={`${btn.primary} mt-4 w-full`}
-            onClick={() => setMergedNote(true)}
-          >
-            Create merged PDF
-          </button>
-          {mergedNote ? (
-            <div className="mt-3">
-              <DemoNote>
-                Merging files needs the backend. Your uploads stay in this
-                browser; only their names are kept in the demo.
-              </DemoNote>
-            </div>
-          ) : null}
-        </Card>
-      </div>
+                <ArrowUp className="size-4" aria-hidden />
+              </button>
+              <button
+                type="button"
+                className={`${btn.icon} size-8`}
+                aria-label={`Move ${part} down`}
+                disabled={index === ordered.length - 1}
+                onClick={() => move(index, 1)}
+              >
+                <ArrowDown className="size-4" aria-hidden />
+              </button>
+            </li>
+          ))}
+        </ol>
+      </Disclosure>
     </ScreenMotion>
   );
 }

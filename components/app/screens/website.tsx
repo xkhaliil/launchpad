@@ -10,16 +10,8 @@ import {
 } from "@/lib/demo/data";
 import { updateDemo, useDemo } from "@/lib/demo/store";
 import { SITES_ROOT_DOMAIN } from "@/lib/site";
-import {
-  btn,
-  Card,
-  DemoNote,
-  inputClass,
-  ScreenHero,
-  SectionTitle,
-  formatMonth,
-} from "../ui";
 import { ScreenMotion } from "../motion";
+import { btn, formatMonth, PageHeader, Segmented } from "../ui";
 
 type DemoWebsite = ReturnType<typeof useDemo>["website"];
 
@@ -121,142 +113,124 @@ function SitePreview({
   );
 }
 
+const TEMPLATE_OPTIONS = WEBSITE_TEMPLATES.map((template) => ({
+  value: template.id,
+  label: template.name,
+}));
+
 export function WebsiteScreen() {
   const { profile, website } = useDemo();
   const valid = /^[a-z0-9](?:[a-z0-9-]{1,30}[a-z0-9])$/.test(website.subdomain);
   const url = `${website.subdomain}.${SITES_ROOT_DOMAIN}`;
 
   return (
-    <ScreenMotion id="website" className="space-y-4">
-      <ScreenHero
-        title="Personal website"
-        description="Your profile on a one-page site. Pick a template and a colour; it updates as your profile changes."
+    <ScreenMotion id="website" className="space-y-8">
+      <PageHeader
+        title="Website"
         stat={website.published ? "Live" : "Draft"}
-        statLabel={url}
-      />
-
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,4fr)_minmax(0,8fr)]">
-        <div className="space-y-4">
-          <Card>
-            <SectionTitle>Template</SectionTitle>
-            <div
-              className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-2"
-              role="radiogroup"
-              aria-label="Template"
-            >
-              {WEBSITE_TEMPLATES.map((template) => (
-                <button
-                  key={template.id}
-                  type="button"
-                  role="radio"
-                  aria-checked={website.template === template.id}
-                  onClick={() => setWebsite({ template: template.id })}
-                  className={`rounded-2xl border p-3 text-left transition-colors ${
-                    website.template === template.id
-                      ? "border-ink bg-ink text-paper"
-                      : "border-line hover:border-ink/30"
-                  }`}
-                >
-                  <p className="text-sm font-medium">{template.name}</p>
-                  <p
-                    className={`mt-0.5 text-xs ${website.template === template.id ? "text-paper/70" : "text-ink-muted"}`}
-                  >
-                    {template.description}
-                  </p>
-                </button>
-              ))}
-            </div>
-            <p className="mt-5 mb-2 text-sm font-medium">Accent colour</p>
-            <div
-              className="flex flex-wrap gap-2"
-              role="radiogroup"
-              aria-label="Accent colour"
-            >
-              {ACCENT_COLOURS.map((colour) => (
-                <button
-                  key={colour}
-                  type="button"
-                  role="radio"
-                  aria-checked={website.colour === colour}
-                  aria-label={`Colour ${colour}`}
-                  onClick={() => setWebsite({ colour })}
-                  className={`size-9 rounded-full ring-offset-2 ${website.colour === colour ? "ring-2 ring-ink" : ""}`}
-                  style={{ background: colour }}
-                />
-              ))}
-            </div>
-          </Card>
-
-          <Card surface="sand">
-            <SectionTitle>Publish</SectionTitle>
-            <label htmlFor="subdomain" className="text-sm font-medium">
-              Address
-            </label>
-            <div className="mt-1.5 flex items-center gap-2">
-              <input
-                id="subdomain"
-                className={`${inputClass} h-11 min-w-0`}
-                value={website.subdomain}
-                aria-invalid={!valid}
-                onChange={(e) =>
-                  setWebsite({
-                    subdomain: e.target.value.toLowerCase(),
-                    published: false,
-                  })
-                }
-              />
-              <span className="shrink-0 text-sm text-ink-muted">
-                .{SITES_ROOT_DOMAIN}
+        statLabel={website.published ? `at ${url} (demo)` : "not published yet"}
+        actions={
+          website.published ? (
+            <>
+              <span className="inline-flex items-center gap-1.5 text-sm text-success">
+                <ExternalLink className="size-4" aria-hidden />
+                Live
               </span>
-            </div>
-            {!valid ? (
-              <p className="mt-1.5 text-sm text-danger">
-                3–32 characters: lowercase letters, numbers and hyphens.
-              </p>
-            ) : null}
+              <button
+                type="button"
+                className={btn.secondary}
+                onClick={() => setWebsite({ published: false })}
+              >
+                Unpublish
+              </button>
+            </>
+          ) : (
             <button
               type="button"
-              className={`${btn.accent} mt-4 w-full`}
+              className={`${btn.accent} h-11 px-5`}
               disabled={!valid}
-              onClick={() => setWebsite({ published: !website.published })}
+              onClick={() => setWebsite({ published: true })}
             >
               <Rocket className="size-4" aria-hidden />
-              {website.published ? "Unpublish" : "Publish"}
+              Publish
             </button>
-            {website.published ? (
-              <p className="mt-3 flex items-center gap-1.5 text-sm text-success">
-                <ExternalLink className="size-4" aria-hidden />
-                Live at {url} (demo)
-              </p>
-            ) : null}
-            <div className="mt-4">
-              <DemoNote>
-                Demo: publishing is simulated. Custom domains and GitHub Pages
-                come with the backend. The site domain is not chosen yet.
-              </DemoNote>
-            </div>
-          </Card>
-        </div>
+          )
+        }
+      >
+        It updates by itself when your profile changes. Publishing is simulated
+        in the demo.
+      </PageHeader>
 
-        <div
-          data-motion="tile"
-          data-motion-hide
-          className="min-w-0 overflow-hidden rounded-[1.75rem] border border-line bg-surface shadow-lift"
-        >
-          <div className="flex items-center gap-2 border-b border-line px-4 py-3">
-            <span className="size-2.5 rounded-full bg-line" aria-hidden />
-            <span className="size-2.5 rounded-full bg-line" aria-hidden />
-            <span className="size-2.5 rounded-full bg-line" aria-hidden />
-            <span className="ml-2 min-w-0 truncate rounded-full bg-paper px-3 py-1 text-xs text-ink-muted">
-              {url}
-            </span>
-          </div>
-          <SitePreview
-            profile={profile}
-            template={website.template}
-            colour={website.colour}
-          />
+      {/* Every choice in one row above the preview. */}
+      <div
+        data-motion="tile"
+        data-motion-hide
+        className="flex flex-wrap items-center gap-x-5 gap-y-3"
+      >
+        <Segmented
+          label="Template"
+          value={website.template}
+          options={TEMPLATE_OPTIONS}
+          onChange={(template: WebsiteTemplate) => setWebsite({ template })}
+        />
+        <div className="flex gap-1.5" role="radiogroup" aria-label="Colour">
+          {ACCENT_COLOURS.map((colour) => (
+            <button
+              key={colour}
+              type="button"
+              role="radio"
+              aria-checked={website.colour === colour}
+              aria-label={`Colour ${colour}`}
+              onClick={() => setWebsite({ colour })}
+              className={`size-7 rounded-full ring-offset-2 ring-offset-paper ${website.colour === colour ? "ring-2 ring-ink" : ""}`}
+              style={{ background: colour }}
+            />
+          ))}
         </div>
+        <label className="flex min-w-0 items-center gap-1 text-sm text-ink-muted">
+          <span className="sr-only">Address</span>
+          <input
+            className={`h-9 w-40 min-w-0 rounded-full bg-surface px-3 text-ink ring-1 transition-colors focus:ring-2 focus:outline-none ${
+              valid ? "ring-line focus:ring-accent/50" : "ring-danger"
+            }`}
+            value={website.subdomain}
+            aria-invalid={!valid}
+            aria-describedby={valid ? undefined : "subdomain-error"}
+            onChange={(e) =>
+              setWebsite({
+                subdomain: e.target.value.toLowerCase(),
+                published: false,
+              })
+            }
+          />
+          .{SITES_ROOT_DOMAIN}
+        </label>
+      </div>
+      {!valid ? (
+        <p id="subdomain-error" className="-mt-5 text-sm text-danger">
+          The address needs 3–32 characters: lowercase letters, numbers and
+          hyphens.
+        </p>
+      ) : null}
+
+      <div
+        data-motion="tile"
+        data-motion-hide
+        className="min-w-0 overflow-hidden rounded-[1.75rem] border border-line bg-surface shadow-lift"
+      >
+        <div className="flex items-center gap-2 border-b border-line px-4 py-3">
+          <span className="size-2.5 rounded-full bg-line" aria-hidden />
+          <span className="size-2.5 rounded-full bg-line" aria-hidden />
+          <span className="size-2.5 rounded-full bg-line" aria-hidden />
+          <span className="ml-2 min-w-0 truncate rounded-full bg-paper px-3 py-1 text-xs text-ink-muted">
+            {url}
+          </span>
+        </div>
+        <SitePreview
+          profile={profile}
+          template={website.template}
+          colour={website.colour}
+        />
       </div>
     </ScreenMotion>
   );
