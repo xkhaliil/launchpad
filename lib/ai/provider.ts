@@ -1,3 +1,4 @@
+import type { Evidence, RepoDraft } from "@/lib/core/github/types";
 import type { Profile } from "@/lib/core/types";
 
 /*
@@ -29,6 +30,13 @@ export type JobAdDetails = {
 
 export interface AiProvider {
   readonly name: string;
+  /**
+   * A description, topics and README for one repo, from its evidence only
+   * (plan.md, section 6.1). A real provider sends REPO_SYSTEM_PROMPT and
+   * buildRepoMessage() from lib/core/github/prompt.ts, then checks the answer
+   * with validateDraft() and normaliseDraft().
+   */
+  draftRepo(evidence: Evidence, hint?: string): Promise<RepoDraft>;
   draftCoverLetter(input: {
     profile: Profile;
     company?: string;

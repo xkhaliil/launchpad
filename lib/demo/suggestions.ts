@@ -2,12 +2,11 @@ import type { LinkedinSuggestions } from "@/lib/ai/provider";
 import { type ConsistencyField, FIELD_LABELS } from "@/lib/core/consistency";
 import type { AreaId } from "@/lib/core/evaluation";
 import { findPlaceholders } from "@/lib/core/cover-letter";
+import { DESCRIPTION_MAX } from "@/lib/core/github/proposal";
+import type { Confidence } from "@/lib/core/github/types";
 import { improveBullet } from "@/lib/core/rewrite";
-import {
-  demoGithubChanges,
-  type GithubChange,
-  type LinkedinField,
-} from "./data";
+import type { LinkedinField } from "./data";
+import { currentBio, githubRepos, suggestedBio } from "./github";
 import { consistencyIssues, evaluation } from "./selectors";
 import type { DemoState } from "./store";
 
@@ -36,7 +35,8 @@ export const REVIEW_FOR: Partial<Record<AreaId, ReviewArea>> = {
 };
 
 export type SuggestionTarget =
-  | { kind: "github"; change: GithubChange }
+  | { kind: "github-bio" }
+  | { kind: "repo"; name: string }
   | { kind: "linkedin"; field: LinkedinField }
   | { kind: "bullet"; before: string }
   | {
@@ -57,13 +57,24 @@ export type Suggestion = {
   after: string;
   /** One line on where the suggestion comes from. */
   why: string;
-  /** "apply": the app makes the change. "copy": you paste it yourself. */
-  mode: "apply" | "copy";
+  /**
+   * "apply": the app makes the change. "copy": you paste it yourself.
+   * "approve": it is approved now and applied later, after a dry run.
+   */
+  mode: "apply" | "copy" | "approve";
   /** The suggested text can be changed before accepting. */
   editable: boolean;
   multiline: boolean;
   /** For GitHub: the exact call a dry run shows. */
   call?: string;
+  /** For a repo proposal: everything else that would change. */
+  details?: {
+    topics: string[];
+    readme: string;
+    homepage?: string;
+    confidence: Confidence;
+    unknowns: string[];
+  };
   target: SuggestionTarget;
 };
 
@@ -110,25 +121,49 @@ export function pendingSuggestions(
     );
   const list: Suggestion[] = [];
 
-  // GitHub: proposed changes not yet applied or skipped.
-  for (const change of demoGithubChanges) {
-    if ((state.github[change.id] ?? "proposed") !== "proposed") continue;
+  // GitHub: the suggested bio (after a scan), then drafted repo proposals.
+  if (state.github.scannedAt && state.github.bio === "proposed") {
+    const bio = suggestedBio(state);
     list.push({
-      id: change.id,
-      areas:
-        change.kind === "bio" && mismatch("github", "headline")
-          ? ["github", "consistency"]
-          : ["github"],
-      where: change.repo ? `GitHub · ${change.repo}` : "GitHub profile",
-      title: change.title,
-      before: change.before,
-      after: change.after,
-      why: `Based on ${change.evidence.join(", ")}`,
+      id: "github-bio",
+      areas: mismatch("github", "headline")
+        ? ["github", "consistency"]
+        : ["github"],
+      where: "GitHub profile",
+      title: "Profile bio",
+      before: currentBio(state) || null,
+      after: bio,
+      why: "Based on your profile headline, top skills and city.",
       mode: "apply",
       editable: false,
-      multiline: change.after.includes("\n"),
-      call: change.call,
-      target: { kind: "github", change },
+      multiline: false,
+      call: `PATCH /user { "bio": "${bio}" }`,
+      target: { kind: "github-bio" },
+    });
+  }
+  const repos = githubRepos(state, { all: true });
+  for (const proposal of Object.values(state.github.proposals)) {
+    if (proposal.status !== "pending") continue;
+    const repo = repos.find((item) => item.name === proposal.name);
+    list.push({
+      id: `repo-${proposal.name}`,
+      areas: ["github"],
+      where: `GitHub · ${proposal.name}`,
+      title: "Description, topics and README",
+      before: repo?.description ?? null,
+      after: proposal.description,
+      why: proposal.reasoning,
+      mode: "approve",
+      editable: true,
+      multiline: false,
+      details: {
+        topics: proposal.topics,
+        readme: proposal.readme,
+        homepage: proposal.homepage,
+        confidence: proposal.confidence,
+        unknowns: proposal.unknowns,
+      },
+      target: { kind: "repo", name: proposal.name },
     });
   }
 
@@ -201,12 +236,16 @@ export function pendingSuggestions(
     }
   }
 
-  // Mismatches no other suggestion already fixes.
+  // Mismatches no other suggestion already fixes. The GitHub headline is
+  // fixed by the bio, which needs a scan first.
   const covered = new Set(
     list
       .filter((item) => item.areas.includes("consistency"))
-      .map((item) => (item.target.kind === "github" ? "github" : "linkedin")),
+      .map((item) =>
+        item.target.kind === "github-bio" ? "github" : "linkedin",
+      ),
   );
+  if (state.github.bio === "proposed") covered.add("github");
   for (const issue of issues) {
     const sourceId = issue.sourceId as "linkedin" | "github";
     const coveredHere =
@@ -246,5 +285,9 @@ export function readyToAccept(suggestion: Suggestion, text: string): boolean {
   if (findPlaceholders(text).length > 0) return false;
   if (suggestion.target.kind === "bullet" && text.trim() === suggestion.before)
     return false;
+  if (suggestion.target.kind === "repo") {
+    const length = text.trim().length;
+    return length >= 10 && length <= DESCRIPTION_MAX;
+  }
   return true;
 }

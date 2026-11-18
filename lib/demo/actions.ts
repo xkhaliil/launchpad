@@ -1,35 +1,13 @@
 "use client";
 
 import type { ConsistencyField } from "@/lib/core/consistency";
-import type { GithubChange, LinkedinField } from "./data";
-import { type ChangeStatus, updateDemo, updateProfile } from "./store";
+import type { LinkedinField } from "./data";
+import { updateDemo, updateProfile } from "./store";
 
 /*
  * Changes to the demo state that more than one place makes (a screen and the
  * review panel), kept here so both do exactly the same thing.
  */
-
-export function setGithubStatus(change: GithubChange, status: ChangeStatus) {
-  updateDemo((state) => {
-    // Applying the bio makes GitHub match the profile headline.
-    const sources =
-      change.kind === "bio"
-        ? {
-            ...state.sources,
-            github: {
-              ...state.sources.github,
-              headline:
-                status === "applied" ? state.profile.headline : change.before,
-            },
-          }
-        : state.sources;
-    return {
-      ...state,
-      sources,
-      github: { ...state.github, [change.id]: status },
-    };
-  });
-}
 
 export function setLinkedinDone(field: LinkedinField, done: boolean) {
   updateDemo((state) => {

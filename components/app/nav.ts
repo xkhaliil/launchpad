@@ -103,14 +103,26 @@ export const NAV: NavEntry[] = [
     label: "GitHub",
     icon: GitBranch,
     group: "Get found",
-    value: (m) =>
-      m.toReview > 0
-        ? {
-            text: String(m.toReview),
-            tone: "attention",
-            label: `${m.toReview} changes to review`,
-          }
-        : { text: "Done", tone: "done", label: "all changes reviewed" },
+    value: ({ github: gh }) =>
+      !gh.scanned
+        ? { text: "Scan", label: "not scanned yet" }
+        : gh.toReview > 0
+          ? {
+              text: String(gh.toReview),
+              tone: "attention",
+              label: `${gh.toReview} proposal${gh.toReview === 1 ? "" : "s"} to review`,
+            }
+          : gh.toApply > 0
+            ? {
+                text: String(gh.toApply),
+                tone: "attention",
+                label: `${gh.toApply} approved change${gh.toApply === 1 ? "" : "s"} to apply`,
+              }
+            : {
+                text: String(gh.health),
+                tone: gh.health >= 85 ? "done" : undefined,
+                label: `average repo health ${gh.health}`,
+              },
   },
   {
     href: "/website",

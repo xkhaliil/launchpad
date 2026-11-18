@@ -276,6 +276,21 @@ current-role line ("Software Engineer @ Hounder AI · Co-Founder @ Devoxys") and
 icons. Expected suggestions: add a featured-projects section; flag the title mismatch
 "Full-stack dev" vs "Software Engineer" for the consistency checker.
 
+**Built so far (demo, 2026-11-18).** gitms's pipeline is ported and runs on an example
+account with the mock AI, nothing sent to GitHub:
+- Pure, tested rules in `lib/core/github/`: audit and health score, file facts, evidence
+  helpers, manifest parsers, GitHub limits and cleanup, dry-run call plan, and the prompt
+  for a real provider. Ported from gitms (MIT).
+- The pipeline on demo data: `lib/demo/github.ts`, `lib/demo/github-data.ts`.
+- The screens: `components/app/screens/github*.tsx`.
+- The flow: scan → account numbers and "Fix these first" → select and draft → Review
+  (approve, edit, skip; repo page with evidence, reasoning, unknowns and
+  regenerate-with-correction) → Apply with dry run on by default → Undo.
+- One difference from gitms: a near-empty repo is reported as "not enough code" before
+  the "already has a README" rule.
+- Still to build with the backend: the GitHub App and real API client, the profile README,
+  pins, the profile photo step and clean-up suggestions.
+
 ### 6.2 CV builder (PDF) + ATS checker
 
 **Pipeline:** collect → build → check → fix → export.
@@ -593,6 +608,7 @@ German-language CVs (Lebenslauf, Anschreiben) · Chrome extension for job ads.
 | 2026-11-17 | All app screens built UI-first with mock data (no backend): demo state in the browser, real rules in `lib/core` with tests, AI behind a provider interface (`lib/ai/provider.ts`) with a mock provider. Sign up / log in open the demo. Single Next.js app for now, not the monorepo layout in section 4 | Owner's choice: "do the UI first with mock data"; owner wants a cheaper or free AI provider than Anthropic |
 | 2026-11-18 | App layout: light sidebar that can collapse to an icon rail (choice remembered in the browser), with a number beside each screen (profile %, ATS score, changes to review…); a top bar with the breadcrumb, live metrics (readiness and its change, ATS, applications, to review, documents) and search; Ctrl/⌘ K search palette; on phones a bottom tab bar with badges and a "More" sheet for the other screens. Screen list and their numbers come from one place, `components/app/nav.ts` | Owner rejected the dark sidebar ("everything looks the same") and asked for numeric data in a top or bottom bar, laid out like a real app |
 | 2026-11-18 | UX architecture (section 7.1): one Review queue and panel for every suggestion; Evaluation merged into Home and Cover letters into Applications (8 screens in "Apply" and "Get found" groups); every screen on one skeleton with fewer cards and less text; the top bar keeps readiness and the Review count, the phone tab bar gets Review in the middle | Owner: the app felt hard to use, with "a lot of cards in my face and a lot of text"; asked for "the best user experience with the easiest way to interact" |
+| 2026-11-18 | GitHub module built from gitms (section 6.1): scan, audit, evidence-based drafts, review, dry run, apply, undo; runs on an example account and the mock AI until the GitHub App and a provider exist. AI interface gained `draftRepo` | Owner asked for the same functionality as gitms in the GitHub section |
 
 ---
 

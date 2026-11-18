@@ -2,6 +2,12 @@
 
 import { useSyncExternalStore } from "react";
 import type { ConsistencyField } from "@/lib/core/consistency";
+import {
+  DEFAULT_SCAN_SETTINGS,
+  type PlannedCall,
+  type RepoProposal,
+  type ScanSettings,
+} from "@/lib/core/github/types";
 import type { Profile } from "@/lib/core/types";
 import {
   ACCENT_COLOURS,
@@ -24,15 +30,59 @@ import {
 
 export type ChangeStatus = "proposed" | "applied" | "skipped";
 
+/** A repo's description, topics, README and homepage at one moment. */
+export type RepoFields = {
+  description: string | null;
+  topics: string[];
+  readme: string | null;
+  homepage: string | null;
+};
+
+/** One dry run or real apply, for the history list. */
+export type ApplyRun = {
+  at: string;
+  dryRun: boolean;
+  repos: string[];
+  calls: PlannedCall[];
+};
+
+/** The GitHub module (plan.md, section 6.1), as gitms keeps it. */
+export type DemoGithub = {
+  /** null until the first scan. */
+  scannedAt: string | null;
+  settings: ScanSettings;
+  proposals: Record<string, RepoProposal>;
+  /** What GitHub shows now for repos changed in the demo. */
+  applied: Record<string, RepoFields>;
+  /** What was there before each apply, for Undo. */
+  backups: Record<string, RepoFields>;
+  /** The suggested profile bio (PATCH /user). */
+  bio: ChangeStatus;
+  /** Most recent first. */
+  runs: ApplyRun[];
+};
+
+export function initialGithub(): DemoGithub {
+  return {
+    scannedAt: null,
+    settings: { ...DEFAULT_SCAN_SETTINGS },
+    proposals: {},
+    applied: {},
+    backups: {},
+    bio: "proposed",
+    runs: [],
+  };
+}
+
 export type DemoState = {
-  version: 1;
+  version: 2;
   onboarded: boolean;
   profile: Profile;
   sources: Record<
     "linkedin" | "github",
     Partial<Record<ConsistencyField, string>>
   >;
-  github: Record<string, ChangeStatus>;
+  github: DemoGithub;
   linkedin: { done: LinkedinField[]; banner: number; colour: string };
   coverLetter: string;
   jobAds: JobAd[];
@@ -51,11 +101,11 @@ const KEY = "launchpad-demo";
 
 export function initialDemoState(): DemoState {
   return {
-    version: 1,
+    version: 2,
     onboarded: false,
     profile: structuredClone(demoProfile),
     sources: structuredClone(demoSources),
-    github: {},
+    github: initialGithub(),
     linkedin: { done: ["skills"], banner: 0, colour: ACCENT_COLOURS[0] },
     coverLetter: initialCoverLetter,
     jobAds: structuredClone(demoJobAds),
@@ -84,8 +134,13 @@ function load(): DemoState {
   try {
     const raw = window.localStorage.getItem(KEY);
     if (raw) {
-      const parsed = JSON.parse(raw) as DemoState;
-      if (parsed?.version === 1) return parsed;
+      const parsed = JSON.parse(raw) as
+        DemoState | (Omit<DemoState, "version" | "github"> & { version: 1 });
+      if (parsed?.version === 2) return parsed;
+      // Version 1 kept GitHub as a list of fixed changes; start that part over.
+      if (parsed?.version === 1) {
+        return { ...parsed, version: 2, github: initialGithub() };
+      }
     }
   } catch {
     // Storage blocked or corrupt: start from the demo data.
@@ -139,6 +194,11 @@ export function resetDemo() {
   }
   state = initialDemoState();
   emit();
+}
+
+/** The latest state, for async work that must not use a stale render. */
+export function getDemo(): DemoState {
+  return current();
 }
 
 export function useDemo(): DemoState {

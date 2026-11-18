@@ -19,9 +19,9 @@ import { ai } from "@/lib/ai/mock";
 import {
   matchProfileValue,
   replaceBullet,
-  setGithubStatus,
   setLinkedinDone,
 } from "@/lib/demo/actions";
+import { setBioStatus, updateProposal } from "@/lib/demo/github";
 import { evaluation } from "@/lib/demo/selectors";
 import { useDemo } from "@/lib/demo/store";
 import {
@@ -32,8 +32,9 @@ import {
   type ReviewArea,
   type Suggestion,
 } from "@/lib/demo/suggestions";
+import { Markdown } from "./markdown";
 import { CountUp } from "./motion";
-import { btn } from "./ui";
+import { btn, Disclosure } from "./ui";
 
 /*
  * Review: the one way to act on what the app proposes. One suggestion at a
@@ -74,7 +75,8 @@ type Session = {
 
 function acceptLabel(suggestion: Suggestion) {
   if (suggestion.mode === "copy") return "Copy and mark done";
-  if (suggestion.target.kind === "github") return "Apply on GitHub";
+  if (suggestion.mode === "approve") return "Approve";
+  if (suggestion.target.kind === "github-bio") return "Apply on GitHub";
   if (suggestion.target.kind === "mismatch") return "Use profile value";
   return "Use this";
 }
@@ -182,18 +184,33 @@ export function ReviewProvider({ children }: { children: ReactNode }) {
       }
     }
     const { target } = suggestion;
-    if (target.kind === "github") setGithubStatus(target.change, "applied");
+    if (target.kind === "github-bio") setBioStatus("applied");
+    if (target.kind === "repo") {
+      // Approved now; written to GitHub later, after a dry run.
+      updateProposal(target.name, {
+        description: text.trim(),
+        status: "approved",
+      });
+    }
     if (target.kind === "linkedin") setLinkedinDone(target.field, true);
     if (target.kind === "bullet") replaceBullet(target.before, text.trim());
     if (target.kind === "mismatch")
       matchProfileValue(target.sourceId, target.field, suggestion.after);
-    setFlash(suggestion.mode === "copy" ? "Copied" : "Applied");
+    setFlash(
+      suggestion.mode === "copy"
+        ? "Copied"
+        : suggestion.mode === "approve"
+          ? "Approved"
+          : "Applied",
+    );
   };
 
   const skip = (suggestion: Suggestion) => {
-    if (suggestion.target.kind === "github") {
-      // GitHub keeps "skipped" so the GitHub screen can offer Undo.
-      setGithubStatus(suggestion.target.change, "skipped");
+    // GitHub keeps "skipped" so the GitHub screen can show it and undo it.
+    const { target } = suggestion;
+    if (target.kind === "github-bio") setBioStatus("skipped");
+    else if (target.kind === "repo") {
+      updateProposal(target.name, { status: "skipped" });
     } else {
       setSkipped((previous) => new Set(previous).add(suggestion.id));
     }
@@ -399,7 +416,11 @@ function SuggestionView({
 
         <div className="mt-5">
           <p className="text-xs font-medium text-accent-strong">
-            {suggestion.mode === "copy" ? "To paste" : "Suggested"}
+            {suggestion.mode === "copy"
+              ? "To paste"
+              : suggestion.target.kind === "repo"
+                ? "Suggested description"
+                : "Suggested"}
           </p>
           {suggestion.editable ? (
             <>
@@ -440,6 +461,10 @@ function SuggestionView({
           )}
         </div>
 
+        {suggestion.details ? (
+          <ProposalDetails details={suggestion.details} />
+        ) : null}
+
         <p className="mt-4 flex gap-2 text-sm leading-6 text-ink-muted">
           <Info className="mt-1 size-4 shrink-0" aria-hidden />
           {suggestion.why}
@@ -478,6 +503,68 @@ function SuggestionView({
   );
 }
 
+const CONFIDENCE_TONE = {
+  high: "bg-success-soft text-success",
+  medium: "bg-accent-soft text-accent-strong",
+  low: "bg-danger/10 text-danger",
+} as const;
+
+/** The rest of a repo proposal: topics, README, confidence, what is unknown. */
+function ProposalDetails({
+  details,
+}: {
+  details: NonNullable<Suggestion["details"]>;
+}) {
+  return (
+    <div className="mt-5 space-y-4">
+      <div>
+        <p className="text-xs font-medium text-ink-muted">Topics</p>
+        <ul className="mt-1.5 flex flex-wrap gap-1.5">
+          {details.topics.map((topic) => (
+            <li
+              key={topic}
+              className="rounded-full bg-ink/5 px-2.5 py-0.5 font-mono text-xs"
+            >
+              {topic}
+            </li>
+          ))}
+        </ul>
+      </div>
+      {details.homepage ? (
+        <p className="text-sm">
+          <span className="text-xs font-medium text-ink-muted">Homepage </span>
+          {details.homepage}
+        </p>
+      ) : null}
+      <Disclosure summary="Read the README">
+        <div className="max-h-96 overflow-y-auto rounded-2xl bg-surface p-4 ring-1 ring-line">
+          <Markdown source={details.readme} />
+        </div>
+      </Disclosure>
+      <p className="flex flex-wrap items-center gap-2 text-sm">
+        <span
+          className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${CONFIDENCE_TONE[details.confidence]}`}
+        >
+          {details.confidence} confidence
+        </span>
+        {details.confidence === "low" ? (
+          <span className="text-ink-muted">Read it closely.</span>
+        ) : null}
+      </p>
+      {details.unknowns.length > 0 ? (
+        <div>
+          <p className="text-xs font-medium text-ink-muted">Left out</p>
+          <ul className="mt-1 space-y-1 text-sm text-ink-muted">
+            {details.unknowns.map((unknown) => (
+              <li key={unknown}>· {unknown}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 /** Shown when the queue is empty: what changed, and what to do next. */
 function Finished({
   session,
@@ -492,10 +579,20 @@ function Finished({
   const { countFor } = useReview();
   const result = evaluation(state);
   const gained = result.total - session.startScore;
-  // The best fix outside the area just finished.
-  const next = result.topFixes.find(
-    (fix) => !session.area || REVIEW_FOR[fix.areaId] !== session.area,
-  );
+  // First what continues this area outside review (approved GitHub drafts
+  // still need applying), then the best fix elsewhere.
+  const sameArea = session.area
+    ? result.topFixes.find(
+        (fix) =>
+          REVIEW_FOR[fix.areaId] === session.area &&
+          countFor(session.area as ReviewArea) === 0,
+      )
+    : undefined;
+  const next =
+    sameArea ??
+    result.topFixes.find(
+      (fix) => !session.area || REVIEW_FOR[fix.areaId] !== session.area,
+    );
   const nextArea = next ? REVIEW_FOR[next.areaId] : undefined;
   const canReview = nextArea !== undefined && countFor(nextArea) > 0;
   const nextButton = `${btn.primary} h-12 w-full justify-between px-5`;

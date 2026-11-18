@@ -3,13 +3,8 @@ import { findIssues, type Source } from "@/lib/core/consistency";
 import { findCliches, WORD_LIMIT, wordCount } from "@/lib/core/cover-letter";
 import { evaluate } from "@/lib/core/evaluation";
 import type { Profile } from "@/lib/core/types";
-import {
-  demoGithubChanges,
-  demoHistory,
-  demoRepos,
-  docSpecs,
-  LINKEDIN_FIELDS,
-} from "./data";
+import { demoHistory, docSpecs, LINKEDIN_FIELDS } from "./data";
+import { githubAudit, githubCounts } from "./github";
 import type { DemoState } from "./store";
 
 /*
@@ -39,18 +34,42 @@ export function requiredDocs(state: DemoState) {
   );
 }
 
+/**
+ * GitHub's share of the score: unknown until scanned, then repo health
+ * (80%) and the profile bio (20%). The next step follows the pipeline:
+ * scan → review → apply → improve what is left.
+ */
 export function githubProgress(state: DemoState) {
-  const applied = demoGithubChanges.filter(
-    (change) => state.github[change.id] === "applied",
-  ).length;
-  const counted = demoRepos.filter((repo) => !repo.isFork);
-  const health =
-    counted.reduce((sum, repo) => sum + repo.health, 0) / counted.length;
+  const counts = githubCounts(state);
+  const { audit, priority } = githubAudit(state);
+  const health = counts.scanned ? audit.averageScore : 0;
+  const bioDone = state.github.bio === "applied";
+  const undrafted = priority.filter((name) => !state.github.proposals[name]);
+  const plural = (n: number, word: string) =>
+    `${n} ${word}${n === 1 ? "" : "s"}`;
+
+  let fix: string;
+  let href = "/github";
+  if (!counts.scanned) {
+    fix = "Scan your GitHub repositories.";
+  } else if (counts.pending > 0) {
+    fix = `Review ${plural(counts.pending, "GitHub proposal")}.`;
+  } else if (counts.approved > 0) {
+    fix = `Apply ${plural(counts.approved, "approved change")} to GitHub.`;
+    href = "/github#apply";
+  } else if (undrafted.length > 0) {
+    fix = `Draft fixes for ${plural(undrafted.length, "repo")} that need them.`;
+  } else {
+    fix = `Improve your weakest repo, ${audit.repos[0]?.name ?? "on GitHub"}.`;
+  }
+
   return {
-    applied,
-    total: demoGithubChanges.length,
-    health: Math.round(health),
-    ratio: (health / 100) * 0.5 + (applied / demoGithubChanges.length) * 0.5,
+    ...counts,
+    health,
+    bioDone,
+    fix,
+    href,
+    ratio: counts.scanned ? 0.8 * (health / 100) + (bioDone ? 0.2 : 0) : 0.1,
   };
 }
 
@@ -86,12 +105,6 @@ export function evaluation(state: DemoState) {
   const high = issues.filter((issue) => issue.severity === "high").length;
   const medium = issues.length - high;
 
-  const ghOpen = demoGithubChanges.filter(
-    (change) => (state.github[change.id] ?? "proposed") === "proposed",
-  ).length;
-  const weakest = demoRepos
-    .filter((repo) => !repo.isFork)
-    .sort((a, b) => a.health - b.health)[0];
   const linkedinLeft = LINKEDIN_FIELDS.filter(
     (field) => !state.linkedin.done.includes(field),
   );
@@ -111,11 +124,8 @@ export function evaluation(state: DemoState) {
       id: "github",
       label: "GitHub",
       ratio: gh.ratio,
-      fix:
-        ghOpen > 0
-          ? `Review ${ghOpen} proposed GitHub change${ghOpen === 1 ? "" : "s"}.`
-          : `Improve your weakest repo, ${weakest?.name ?? "on GitHub"}.`,
-      href: "/github",
+      fix: gh.fix,
+      href: gh.href,
     },
     {
       id: "linkedin",
@@ -204,7 +214,12 @@ export function appMetrics(state: DemoState) {
     tailored: state.jobAds.filter((job) => job.tailored).length,
     linkedinDone: state.linkedin.done.length,
     linkedinTotal: LINKEDIN_FIELDS.length,
-    toReview: gh.total - gh.applied,
+    github: {
+      scanned: gh.scanned,
+      health: gh.health,
+      toReview: gh.pending,
+      toApply: gh.approved,
+    },
     published: state.website.published,
     docsUploaded: uploaded,
     docsRequired: required.length,

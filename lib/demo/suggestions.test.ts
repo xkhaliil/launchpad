@@ -11,35 +11,58 @@ const linkedin: LinkedinSuggestions = {
   url: "linkedin.com/in/ada-lovelace",
 };
 
+const scanned = () => {
+  const state = initialDemoState();
+  state.github.scannedAt = "2026-11-18T10:00:00Z";
+  return state;
+};
+
+const count = (list: ReturnType<typeof pendingSuggestions>, area: string) =>
+  list.filter((item) => item.areas.includes(area as never)).length;
+
 describe("pendingSuggestions", () => {
-  it("collects GitHub, LinkedIn and CV suggestions from the demo state", () => {
+  it("collects LinkedIn and CV suggestions; GitHub waits for a scan", () => {
     const list = pendingSuggestions(initialDemoState(), linkedin);
-    const count = (area: string) =>
-      list.filter((item) => item.areas.includes(area as never)).length;
-    expect(count("github")).toBe(5);
+    expect(count(list, "github")).toBe(0);
     // "skills" starts as done in the demo.
-    expect(count("linkedin")).toBe(4);
-    expect(count("cv")).toBe(2);
+    expect(count(list, "linkedin")).toBe(4);
+    expect(count(list, "cv")).toBe(2);
   });
 
-  it("lets one suggestion fix a mismatch instead of listing it twice", () => {
-    const list = pendingSuggestions(initialDemoState(), linkedin);
+  it("offers the GitHub bio once scanned, and it fixes the mismatch", () => {
+    const list = pendingSuggestions(scanned(), linkedin);
+    const bio = list.find((item) => item.id === "github-bio");
+    expect(bio?.areas).toEqual(["github", "consistency"]);
+    expect(bio?.call).toContain("PATCH /user");
     expect(list.some((item) => item.target.kind === "mismatch")).toBe(false);
-    const bio = list.find((item) => item.id === "gh-bio");
-    expect(bio?.areas).toContain("consistency");
+  });
+
+  it("asks to approve drafted repo proposals, with their details", () => {
+    const state = scanned();
+    state.github.proposals["algo-exercises"] = {
+      name: "algo-exercises",
+      status: "pending",
+      description: "Python solutions to algorithm exercises",
+      topics: ["python", "algorithms", "pytest"],
+      readme: "# Algo",
+      confidence: "medium",
+      reasoning: "Based on requirements.txt.",
+      unknowns: [],
+      generatedAt: "",
+      model: "test",
+    };
+    const item = pendingSuggestions(state, null).find(
+      (entry) => entry.id === "repo-algo-exercises",
+    );
+    expect(item?.mode).toBe("approve");
+    expect(item?.details?.topics).toEqual(["python", "algorithms", "pytest"]);
+    expect(readyToAccept(item!, "short")).toBe(false);
+    expect(readyToAccept(item!, item!.after)).toBe(true);
   });
 
   it("leaves LinkedIn out until the suggestions exist", () => {
     const list = pendingSuggestions(initialDemoState(), null);
     expect(list.some((item) => item.areas.includes("linkedin"))).toBe(false);
-  });
-
-  it("drops what is applied or skipped", () => {
-    const state = initialDemoState();
-    state.github = { "gh-bio": "applied", "gh-route-desc": "skipped" };
-    const ids = pendingSuggestions(state, null).map((item) => item.id);
-    expect(ids).not.toContain("gh-bio");
-    expect(ids).not.toContain("gh-route-desc");
   });
 });
 
