@@ -1,26 +1,151 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* The whole palette lives here. Components only use these tokens. */
+@theme {
+  --color-paper: #fdfaf5;
+  --color-surface: #ffffff;
+  --color-ink: #1a1613;
+  --color-ink-muted: #5f574f;
+  --color-line: #ebe4d8;
+  --color-sand: #f4eee4;
+
+  --color-accent: #c2410c;
+  --color-accent-strong: #9a3412;
+  --color-accent-soft: #ffedd8;
+
+  --color-success: #177a4f;
+  --color-success-soft: #e4f5ec;
+  --color-danger: #b42318;
+
+  --color-glow-1: #ffcfa3;
+  --color-glow-2: #ffe6ad;
+  --color-glow-3: #ffd3dc;
+
+  --shadow-float: 0 40px 90px -40px rgb(150 70 20 / 0.35);
+  --shadow-lift: 0 18px 40px -24px rgb(150 70 20 / 0.35);
+  /* Floating navbar capsule: soft drop plus a faint highlight on its top edge. */
+  --shadow-pill:
+    0 12px 32px -14px rgb(26 22 19 / 0.3), 0 2px 6px -2px rgb(26 22 19 / 0.08),
+    inset 0 1px 0 rgb(255 255 255 / 0.7);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-nohemi), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
+:root {
+  /* Seamless fabric tile: dark ink with a transparent weave. Size = the file. */
+  --texture: url("/textures/canvas.webp");
+  --texture-size: 451px 459px;
+  /* How far down the page the warm wash behind the hero reaches. */
+  --hero-wash: 90rem;
+}
+
+@media (width >= 48rem) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --hero-wash: 66rem;
   }
 }
 
+html {
+  color-scheme: light;
+  /* Only two weights of the typeface are bundled (400 and 500). Never let the
+     browser fake a bold or an italic from them. */
+  font-synthesis: none;
+}
+
+/* Heading line reveals (GSAP SplitText): each line sits in a mask. The padding
+   keeps descenders from being clipped by it. */
+.split-line-mask {
+  padding-bottom: 0.14em;
+  margin-bottom: -0.14em;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/*
+ * Page background, top layer first: the fabric texture over the whole page,
+ * then the warm wash behind the header and hero, then the paper colour.
+ * Keeping them in one background means the texture never shows a seam where
+ * the wash ends.
+ */
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--color-ink);
+  background-color: var(--color-paper);
+  background-image:
+    var(--texture),
+    radial-gradient(closest-side, var(--color-glow-3), transparent),
+    radial-gradient(closest-side, var(--color-glow-2), transparent),
+    linear-gradient(
+      to bottom,
+      var(--color-glow-2),
+      var(--color-glow-1) 55%,
+      var(--color-paper)
+    );
+  background-size:
+    var(--texture-size),
+    60rem 60rem,
+    60rem 60rem,
+    100% var(--hero-wash);
+  background-position:
+    0 0,
+    right -18rem top 5rem,
+    left -18rem top -11rem,
+    0 0;
+  background-repeat: repeat, no-repeat, no-repeat, no-repeat;
+}
+
+/*
+ * Hero intro (components/landing/hero-motion.tsx). The animated parts start
+ * hidden so they do not flash before the animation takes over. The script
+ * marks the hero as ready and then controls them itself. If scripts never
+ * run, the parts fade in on their own after a short wait.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  [data-hero-root]:not([data-hero-ready]) [data-hero-hide] {
+    opacity: 0;
+    animation: hero-reveal 0.5s ease-out 3s forwards;
+  }
+}
+
+/* App screens (components/app/motion.tsx): same idea as the hero intro. */
+@media (prefers-reduced-motion: no-preference) {
+  [data-motion-root]:not([data-motion-ready]) [data-motion-hide] {
+    opacity: 0;
+    animation: hero-reveal 0.5s ease-out 3s forwards;
+  }
+}
+
+@keyframes hero-reveal {
+  to {
+    opacity: 1;
+  }
+}
+
+/* The same texture for coloured panels that sit on top of the page. */
+@utility bg-texture {
+  background-image: var(--texture);
+  background-size: var(--texture-size);
+}
+
+::selection {
+  background: var(--color-accent);
+  color: var(--color-surface);
+}
+
+/* Printing (CV export through the browser's "Save as PDF"): white page, no
+   page background, A4 with sensible margins. */
+@media print {
+  @page {
+    size: A4;
+    margin: 16mm;
+  }
+  body {
+    background: #fff !important;
+  }
 }

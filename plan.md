@@ -475,10 +475,10 @@ on Sonnet, ~$0.18/repo on Opus — measure real numbers in beta).
 ## 12. Build phases and task checklist
 
 ### Phase 0 — Validate (weeks 1–3) — owner-led, minimal code
-- [ ] Landing page with waitlist form (name, email, university, target role)
+- [x] Landing page (no waitlist: dropped by the owner on 2026-11-16; calls to action lead to sign-up, which is built in Phase 1)
 - [ ] Free ATS check page (prototype of checker in 6.2)
-- [ ] Analytics on landing + waitlist
-**Gate 1:** 30+ on the waitlist.
+- [ ] Analytics on landing
+**Gate 1:** to be redefined by the owner (was: 30+ on the waitlist, which was dropped on 2026-11-16).
 
 ### Phase 1 — Foundation + MVP (weeks 4–12)
 - [ ] Monorepo setup (structure in section 4), CI (lint, types, tests), preview deploys
@@ -535,6 +535,8 @@ German-language CVs (Lebenslauf, Anschreiben) · Chrome extension for job ads.
 
 ## 14. Open questions (ask the owner; do not assume)
 - [ ] Final product name and domain.
+- [ ] AI provider: the owner wants a cheaper or free one instead of Anthropic. Check its terms first: some free tiers allow training on submitted data, which section 8 forbids for student data.
+- [ ] What replaces Gate 1 (30+ on the waitlist) now that there is no waitlist.
 - [ ] Background removal: self-hosted model or paid API?
 - [ ] Job queue: Supabase table + worker, Inngest, or Trigger.dev?
 - [ ] First university pilot partner.
@@ -551,6 +553,14 @@ German-language CVs (Lebenslauf, Anschreiben) · Chrome extension for job ads.
 | 2026-11-15 | No direct LinkedIn editing; mockup + copy + image tools | LinkedIn edit API restricted |
 | 2026-11-15 | Next.js + Supabase (EU) + Claude API + Vercel | Small team, managed services, GDPR |
 | 2026-11-15 | Product name is Launchpad (was ReadyDev); kept in `APP_NAME` in `lib/site.ts` | Owner's choice |
+| 2026-11-15 | Phase 0 waitlist is stored in a Supabase `waitlist` table (`db/migrations/0001_waitlist.sql`); local dev falls back to `.data/waitlist.json` | Supabase is the decided database; lets the form work before the project exists |
+| 2026-11-16 | Navbar shows Log in / Sign up, or an avatar when signed in. Until Phase 1 auth exists, `lib/auth/session.ts` returns no user, `/signup` shows the waitlist form and `/login` explains accounts are not open | Owner's choice; avoids dead links and fake login forms before auth is built |
+| 2026-11-16 | Landing hero redesigned: split layout with a profile-and-documents illustration, the waitlist form drawn as a boarding pass, and the logo as a "Launchpad" wordmark. Animations use GSAP (`gsap`, `@gsap/react`; free standard licence), limited to the hero and switched off for reduced motion | Owner's request; a distinctive look tied to the product name |
+| 2026-11-16 | No waitlist. The form, its storage code and the `waitlist` table were removed. Below the hero the landing page is now: statement, module grid with feature mocks, full evaluation, steps, principles, closing call to action. `/signup` and `/login` show the planned sign-in options (GitHub, Google, email) but are not connected until Phase 1 auth; trying one shows a notice and sends nothing | Owner's decision: "there is no waiting list" |
+| 2026-11-16 | Landing page art direction: sections alternate between the textured page and full-width rounded "sheets" (white and smooth for the statement, dark and smooth for the evaluation, textured orange for principles, dark for the footer). The scrolled navbar condenses into a floating capsule. The three product figures are art cards | Owner's request for a more artistic page with varied, textured and untextured backgrounds |
+| 2026-11-17 | Typeface is Nohemi (Rajesh Rajput; free for personal and commercial use, files must not be modified, "please do not redistribute"). Only Regular and Medium are bundled, in `app/fonts`. Section labels removed; phone menu added; GSAP SplitText and scroll-linked animations on the landing page | Owner's choice of font and design direction |
+| 2026-11-17 | All app screens built UI-first with mock data (no backend): demo state in the browser, real rules in `lib/core` with tests, AI behind a provider interface (`lib/ai/provider.ts`) with a mock provider. Sign up / log in open the demo. Single Next.js app for now, not the monorepo layout in section 4 | Owner's choice: "do the UI first with mock data"; owner wants a cheaper or free AI provider than Anthropic |
+| 2026-11-18 | App layout: light sidebar that can collapse to an icon rail (choice remembered in the browser), with a number beside each screen (profile %, ATS score, changes to review…); a top bar with the breadcrumb, live metrics (readiness and its change, ATS, applications, to review, documents) and search; Ctrl/⌘ K search palette; on phones a bottom tab bar with badges and a "More" sheet for the other screens. Screen list and their numbers come from one place, `components/app/nav.ts` | Owner rejected the dark sidebar ("everything looks the same") and asked for numeric data in a top or bottom bar, laid out like a real app |
 
 ---
 

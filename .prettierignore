@@ -6,3 +6,8 @@ AGENTS.md
 
 # Hand-edited living doc
 plan.md
+
+# Tool-managed files: Claude Code settings, the graphify skill and its output
+.claude/
+CLAUDE.md
+graphify-out/
